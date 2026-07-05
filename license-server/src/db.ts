@@ -85,6 +85,17 @@ function readDb(): DatabaseState {
         source: 'CodeCanyon',
         expires_at: pastDate,
         created_at: now
+      },
+      {
+        id: 5,
+        license_key: 'TRIAL',
+        customer_email: 'trial@telenova.com',
+        license_type: 'regular',
+        max_activations: 999999, // Allow unlimited activations on the trial key
+        status: 'active',
+        source: 'System',
+        expires_at: null,
+        created_at: now
       }
     ];
 
@@ -154,5 +165,36 @@ export const db = {
     );
     writeDb(state);
     return state.activations.length < initialLength;
+  },
+
+  addLicense(
+    licenseKey: string, 
+    customerEmail: string, 
+    licenseType: 'regular' | 'extended' | 'unlimited', 
+    maxActivations: number, 
+    expiresAt: string | null = null, 
+    source: string = 'API'
+  ): License {
+    const state = readDb();
+    const existing = state.licenses.find(l => l.license_key === licenseKey);
+    if (existing) {
+      throw new Error('License key already exists');
+    }
+
+    const newLicense: License = {
+      id: state.licenses.length > 0 ? Math.max(...state.licenses.map(l => l.id)) + 1 : 1,
+      license_key: licenseKey,
+      customer_email: customerEmail,
+      license_type: licenseType,
+      max_activations: maxActivations,
+      status: 'active',
+      source,
+      expires_at: expiresAt,
+      created_at: new Date().toISOString()
+    };
+    
+    state.licenses.push(newLicense);
+    writeDb(state);
+    return newLicense;
   }
 };

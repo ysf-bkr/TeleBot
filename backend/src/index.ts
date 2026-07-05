@@ -118,15 +118,13 @@ async function startServer() {
   console.log(`[FASTIFY] Server running on http://localhost:${PORT}`);
 
   // Seed + bots
-  const { default: authService } = await import('./modules/auth/auth.service.js');
-  await authService.ensureDefaultAdmin();
 
-  // Initialize license server heartbeat verification
+  // Initialize license server status (handles TRIAL auto-activation or heartbeat verification)
   const { default: licenseService } = await import('./services/license.service.js');
-  await licenseService.verifyHeartbeat();
-  // Check heartbeat every 24 hours
+  await licenseService.initTrialStatus();
+  // Check heartbeat/trial status every 24 hours
   setInterval(async () => {
-    await licenseService.verifyHeartbeat();
+    await licenseService.initTrialStatus();
   }, 24 * 60 * 60 * 1000);
 
   const { default: botService } = await import('./services/bot.service.js');

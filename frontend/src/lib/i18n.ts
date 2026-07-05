@@ -295,9 +295,37 @@ const translations: Record<Language, Record<string, string>> = {
     'setup.bot_token': 'Telegram Bot Token',
     'setup.bot_username': 'Bot Kullanıcı Adı (Opsiyonel)',
     'setup.submit': 'Kurulumu Tamamla',
-    'setup.loading': 'Kuruluyor...',
-    'setup.success': 'Kurulum başarıyla tamamlandı! Yönlendiriliyorsunuz...',
     'setup.error': 'Kurulum başarısız oldu.',
+    
+    // License Blocker
+    'license.blocked_title': 'Lisans Aktivasyonu Gerekli',
+    'license.change_btn': 'Lisans Değiştir / Kurulum',
+    
+    // Setup wizard helpers
+    'setup.already_configured': 'Sistem zaten yapılandırılmış.',
+    'setup.gen_secret_success': 'Güvenli rastgele anahtar üretildi!',
+    'setup.jwt_placeholder': 'En az 32 karakter önerilir',
+    'setup.password_placeholder': 'En az 6 karakter',
+
+    // Settings License Tab
+    'settings.license_tab_title': 'Lisans & Aktivasyon Ayarları',
+    'settings.license_status_trial': 'Deneme (Trial) Sürümü Aktif',
+    'settings.license_status_valid': 'Lisans Başarıyla Aktif Edildi',
+    'settings.license_status_invalid': 'Lisans Geçersiz / Bloke Edildi',
+    'settings.license_trial_expires': 'Deneme sürenizin bitmesine kalan zaman: {time}',
+    'settings.license_trial_days_hours': '{days} gün {hours} saat',
+    'settings.license_time_ended': 'Süre bitti',
+    'settings.license_unlocked_desc': 'Tüm platform özellikleri kilitleri açılmış ve kullanıma hazırdır.',
+    'settings.license_restricted_desc': 'Geçerli bir lisans girilmediği için platform özellikleri kısıtlanmıştır.',
+    'settings.license_active_domain': 'Aktif Domain',
+    'settings.license_fingerprint': 'Cihaz Parmak İzi (Fingerprint)',
+    'settings.license_new_entry': 'Yeni Lisans Girişi',
+    'settings.license_activate_btn': 'Aktive Et',
+    'settings.license_trial_continue_desc': 'Eğer lisans anahtarınız yoksa deneme modunu kullanmaya devam edebilirsiniz.',
+    'settings.license_deactivate_btn': 'Aktivasyonu Kaldır (Lisansı Serbest Bırak)',
+    'settings.license_deactivate_confirm': 'Lisansı kaldırmak istediğinizden emin misiniz? Bu işlem sunucudaki slotu serbest bırakacaktır.',
+    'settings.license_activate_success': 'Lisans anahtarı başarıyla aktif edildi!',
+    'settings.license_deactivate_success': 'Lisans başarıyla kaldırıldı.',
   },
 
   en: {
@@ -592,9 +620,37 @@ const translations: Record<Language, Record<string, string>> = {
     'setup.bot_token': 'Telegram Bot Token',
     'setup.bot_username': 'Bot Username (Optional)',
     'setup.submit': 'Complete Setup',
-    'setup.loading': 'Setting up...',
-    'setup.success': 'Setup completed successfully! Redirecting...',
     'setup.error': 'Setup failed.',
+    
+    // License Blocker
+    'license.blocked_title': 'License Activation Required',
+    'license.change_btn': 'Change License / Setup',
+    
+    // Setup wizard helpers
+    'setup.already_configured': 'System is already configured.',
+    'setup.gen_secret_success': 'Secure random secret generated!',
+    'setup.jwt_placeholder': 'At least 32 characters recommended',
+    'setup.password_placeholder': 'Min 6 characters',
+
+    // Settings License Tab
+    'settings.license_tab_title': 'License & Activation Settings',
+    'settings.license_status_trial': 'Trial Version Active',
+    'settings.license_status_valid': 'License Activated Successfully',
+    'settings.license_status_invalid': 'License Invalid / Blocked',
+    'settings.license_trial_expires': 'Time remaining until trial expires: {time}',
+    'settings.license_trial_days_hours': '{days} days {hours} hours',
+    'settings.license_time_ended': 'Time expired',
+    'settings.license_unlocked_desc': 'All platform features are unlocked and ready for use.',
+    'settings.license_restricted_desc': 'Platform features are restricted because no valid license is configured.',
+    'settings.license_active_domain': 'Active Domain',
+    'settings.license_fingerprint': 'Device Fingerprint',
+    'settings.license_new_entry': 'New License Entry',
+    'settings.license_activate_btn': 'Activate',
+    'settings.license_trial_continue_desc': 'If you do not have a license key, you can continue using trial mode.',
+    'settings.license_deactivate_btn': 'Remove Activation (Release License Slot)',
+    'settings.license_deactivate_confirm': 'Are you sure you want to deactivate this license? This will release the slot on the server.',
+    'settings.license_activate_success': 'License key activated successfully!',
+    'settings.license_deactivate_success': 'License deactivated successfully.',
   }
 };
 

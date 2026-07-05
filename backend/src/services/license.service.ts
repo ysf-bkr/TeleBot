@@ -2,8 +2,9 @@ import os from 'os';
 import fs from 'fs';
 import path from 'path';
 import axios from 'axios';
+import crypto from 'crypto';
 
-const LICENSE_SERVER_URL = 'http://localhost:3001';
+const LICENSE_SERVER_URL = process.env.LICENSE_SERVER_URL || 'http://localhost:3001';
 
 class LicenseService {
   private activationToken: string | null = null;
@@ -18,51 +19,100 @@ class LicenseService {
   constructor() {
     this.activationToken = process.env.ACTIVATION_TOKEN || null;
     this.graceExpires = process.env.GRACE_EXPIRES || null;
-    this.initTrialStatus();
   }
 
-  private initTrialStatus() {
+  async initTrialStatus() {
     const licenseKey = process.env.LICENSE_KEY || '';
     if (!licenseKey) {
       this.isTrial = true;
-      let installDate = process.env.INSTALL_DATE || '';
       
-      if (!installDate) {
-        // Record install date in .env on first launch
-        const envPath = path.resolve(process.cwd(), '.env');
-        let content = '';
-        if (fs.existsSync(envPath)) {
-          content = fs.readFileSync(envPath, 'utf8');
+      if (!this.activationToken) {
+        try {
+          const res = await this.activate('TRIAL');
+          if (res.success) {
+            console.log('[LICENSE] Auto-activated 7-day TRIAL mode on license server.');
+            this.decodeTokenExpiry();
+          }
+        } catch (err: any) {
+          console.warn('[LICENSE] License server unreachable for auto-trial. Falling back to local offline calculations.');
+          this.fallbackLocalTrial();
         }
-        
-        const now = new Date().toISOString();
-        if (!content.includes('INSTALL_DATE=')) {
-          content += `\nINSTALL_DATE="${now}"\n`;
-          fs.writeFileSync(envPath, content, 'utf8');
-          process.env.INSTALL_DATE = now;
-          installDate = now;
-        }
-      }
-
-      const installTime = new Date(installDate).getTime();
-      const trialEndTime = installTime + 7 * 24 * 60 * 60 * 1000; // 7 days trial
-      this.trialExpires = new Date(trialEndTime).toISOString();
-
-      if (Date.now() > trialEndTime) {
-        this.isValid = false;
-        this.isGraceExpired = true; // Block UI
       } else {
-        this.isValid = true;
-        this.isGraceExpired = false;
+        // We have a trial token, verify/heartbeat it
+        await this.verifyHeartbeat();
+        this.decodeTokenExpiry();
       }
+    } else {
+      this.isTrial = false;
+      this.trialExpires = null;
+    }
+  }
+
+  private decodeTokenExpiry() {
+    if (this.activationToken) {
+      try {
+        // JWT is header.payload.signature
+        const parts = this.activationToken.split('.');
+        if (parts.length === 3) {
+          const payload = JSON.parse(Buffer.from(parts[1], 'base64').toString('utf8'));
+          if (payload.graceExpires) {
+            this.trialExpires = payload.graceExpires;
+            if (new Date() > new Date(payload.graceExpires)) {
+              this.isValid = false;
+              this.isGraceExpired = true;
+            }
+          }
+        }
+      } catch (_) {}
+    }
+  }
+
+  private fallbackLocalTrial() {
+    let installDate = process.env.INSTALL_DATE || '';
+    
+    if (!installDate) {
+      const envPath = path.resolve(process.cwd(), '.env');
+      let content = '';
+      if (fs.existsSync(envPath)) {
+        content = fs.readFileSync(envPath, 'utf8');
+      }
+      
+      const now = new Date().toISOString();
+      if (!content.includes('INSTALL_DATE=')) {
+        content += `\nINSTALL_DATE="${now}"\n`;
+        fs.writeFileSync(envPath, content, 'utf8');
+        process.env.INSTALL_DATE = now;
+        installDate = now;
+      }
+    }
+
+    const installTime = new Date(installDate).getTime();
+    const trialEndTime = installTime + 7 * 24 * 60 * 60 * 1000;
+    this.trialExpires = new Date(trialEndTime).toISOString();
+
+    if (Date.now() > trialEndTime) {
+      this.isValid = false;
+      this.isGraceExpired = true;
+    } else {
+      this.isValid = true;
+      this.isGraceExpired = false;
     }
   }
 
   getFingerprint(): string {
-    const platform = os.platform();
-    const hostname = os.hostname();
-    const arch = os.arch();
-    return `${hostname}-${platform}-${arch}`.replace(/[^A-Za-z0-9-]/g, '');
+    const dataDir = path.resolve(process.cwd(), 'data');
+    if (!fs.existsSync(dataDir)) {
+      fs.mkdirSync(dataDir, { recursive: true });
+    }
+    const fingerprintPath = path.resolve(dataDir, 'fingerprint.key');
+    if (fs.existsSync(fingerprintPath)) {
+      return fs.readFileSync(fingerprintPath, 'utf8').trim();
+    }
+    
+    // Generate secure persistent fingerprint UUID
+    const newFingerprint = crypto.randomUUID();
+    fs.writeFileSync(fingerprintPath, newFingerprint, 'utf8');
+    return newFingerprint;
   }
 
   getDomain(): string {
@@ -76,9 +126,6 @@ class LicenseService {
   }
 
   getStatus() {
-    // Re-check trial on every request to prevent runtime expiration bypass
-    this.initTrialStatus();
-
     return {
       isValid: this.isValid,
       isGraceExpired: this.isGraceExpired,
@@ -105,10 +152,20 @@ class LicenseService {
         this.isValid = true;
         this.isGraceExpired = false;
         this.graceExpires = null;
-        this.isTrial = false;
-        this.trialExpires = null;
         
-        process.env.ACTIVATION_TOKEN = response.data.token;
+        // Write dynamic update to env file
+        this.updateEnvConfig({
+          ACTIVATION_TOKEN: response.data.token
+        });
+
+        if (licenseKey === 'TRIAL') {
+          this.isTrial = true;
+          this.decodeTokenExpiry();
+        } else {
+          this.isTrial = false;
+          this.trialExpires = null;
+        }
+
         return { success: true, message: 'License activated successfully!' };
       }
       return { success: false, message: 'Activation response was unsuccessful.' };
@@ -124,14 +181,33 @@ class LicenseService {
     }
   }
 
-  async verifyHeartbeat(): Promise<void> {
-    const licenseKey = process.env.LICENSE_KEY || '';
-    if (!licenseKey) {
-      // Running in Trial mode - heartbeat check bypassed
-      this.initTrialStatus();
-      return;
+  private updateEnvConfig(updates: Record<string, string>) {
+    const envPath = path.resolve(process.cwd(), '.env');
+    let content = '';
+    if (fs.existsSync(envPath)) {
+      content = fs.readFileSync(envPath, 'utf8');
     }
+    const lines = content.split('\n');
+    for (const [key, val] of Object.entries(updates)) {
+      let found = false;
+      for (let i = 0; i < lines.length; i++) {
+        if (lines[i].startsWith(`${key}=`) || lines[i].startsWith(`# ${key}=`)) {
+          lines[i] = `${key}="${val.replace(/"/g, '\\"')}"`;
+          found = true;
+          break;
+        }
+      }
+      if (!found) {
+        lines.push(`${key}="${val.replace(/"/g, '\\"')}"`);
+      }
+    }
+    fs.writeFileSync(envPath, lines.join('\n'), 'utf8');
+    for (const [key, val] of Object.entries(updates)) {
+      process.env[key] = val;
+    }
+  }
 
+  async verifyHeartbeat(): Promise<void> {
     if (!this.activationToken) {
       if (process.env.NODE_ENV === 'production') {
         this.isValid = false;
@@ -152,9 +228,12 @@ class LicenseService {
         this.isValid = true;
         this.isGraceExpired = false;
         this.graceExpires = null;
-        this.isTrial = false;
-        this.trialExpires = null;
-        process.env.ACTIVATION_TOKEN = response.data.token;
+        
+        this.updateEnvConfig({
+          ACTIVATION_TOKEN: response.data.token
+        });
+
+        this.decodeTokenExpiry();
       }
     } catch (err: any) {
       const status = err.response?.status;
@@ -168,7 +247,9 @@ class LicenseService {
         if (!this.graceExpires) {
           const grace = new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString();
           this.graceExpires = grace;
-          process.env.GRACE_EXPIRES = grace;
+          this.updateEnvConfig({
+            GRACE_EXPIRES: grace
+          });
           console.warn(`[LICENSE] Connection to licensing server failed. Grace period started. Expires on: ${grace}`);
         } else if (new Date(this.graceExpires) < new Date()) {
           this.isGraceExpired = true;
@@ -179,8 +260,7 @@ class LicenseService {
   }
 
   isRestricted(): boolean {
-    if (process.env.NODE_ENV !== 'production') return false;
-    this.initTrialStatus();
+    // licensing restrictions apply globally
     return !this.isValid || this.isGraceExpired;
   }
 }

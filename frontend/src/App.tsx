@@ -245,15 +245,15 @@ function App() {
             })}>
               <ShieldAlert size={32} />
             </div>
-            <h2 className={css({ fontSize: 'xl', fontWeight: '800', color: 'textMain', mb: '2' })}>
-              Lisans Aktivasyonu Gerekli
+             <h2 className={css({ fontSize: 'xl', fontWeight: '800', color: 'textMain', mb: '2' })}>
+              {i18n.t('license.blocked_title')}
             </h2>
             <p className={css({ fontSize: 'sm', color: 'textMuted', mb: '6' })}>
               {licenseError}
             </p>
             <div className={css({ display: 'flex', gap: '3', justifyContent: 'center' })}>
               <Button onClick={() => { setLicenseError(null); navigate('/setup'); }} className={css({ fontWeight: '700' })}>
-                Lisans Değiştir / Kurulum
+                {i18n.t('license.change_btn')}
               </Button>
             </div>
           </Card>

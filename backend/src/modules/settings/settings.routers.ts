@@ -275,7 +275,8 @@ async function settingsRouters(fastify: FastifyInstance): Promise<void> {
       const fingerprint = licenseService.getFingerprint();
 
       // Call remote license server to release activation slot
-      await axios.post('http://localhost:3001/api/license/deactivate', {
+      const licenseServerUrl = process.env.LICENSE_SERVER_URL || 'http://localhost:3001';
+      await axios.post(`${licenseServerUrl}/api/license/deactivate`, {
         licenseKey,
         domain,
         fingerprint

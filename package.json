@@ -2,7 +2,7 @@
   "name": "telegram-bot-platform",
   "version": "1.0.0",
   "private": true,
-  "license": "AGPL-3.0",
+  "license": "Proprietary",
   "scripts": {
     "dev": "concurrently --kill-others \"npm:dev:backend\" \"npm:dev:frontend\" \"npm:dev:license-server\"",
     "dev:backend": "cd backend && npm run dev",
@@ -15,29 +15,15 @@
     "typecheck:backend": "cd backend && npm run typecheck",
     "typecheck:frontend": "cd frontend && npm run typecheck",
     "check": "npm run typecheck && npm run build:frontend",
-    "install:all": "npm install && cd backend && npm install && cd ../frontend && npm install && cd ../license-server && npm install",
-    "atabey:status": "atabey status",
-    "atabey:trace": "atabey trace:new",
-    "atabey:verify": "atabey verify-contract",
-    "atabey:check": "atabey check",
-    "atabey:test": "vitest run",
-    "atabey:test:watch": "vitest",
-    "atabey:build": "npm run build -w packages/atabey-mcp"
+    "install:all": "npm install && cd backend && npm install && cd ../frontend && npm install && cd ../license-server && npm install"
   },
   "devDependencies": {
     "concurrently": "^8.2.2",
-    "atabey": "^0.0.23",
-    "@types/node": "^25.9.1",
-    "tsx": "^4.22.3",
-    "vitest": "^3.0.0"
+    "@types/node": "^22.10.2",
+    "tsx": "^4.22.3"
   },
   "dependencies": {
-    "atabey-shared": "^0.0.23",
-    "typescript": "^5.9.3"
+    "typescript": "^5.7.2"
   },
-  "type": "module",
-  "atabey": {
-    "version": "0.0.23",
-    "initializedAt": "2026-07-02T18:48:50.734Z"
-  }
+  "type": "module"
 }

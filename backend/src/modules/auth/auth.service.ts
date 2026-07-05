@@ -99,16 +99,7 @@ class AuthService {
     return { token, user: { id: user.id, username: cleanEmail, role } };
   }
 
-  async ensureDefaultAdmin(): Promise<void> {
-    const adminEmail = (process.env.ADMIN_EMAIL || 'admin@admin.com').trim().toLowerCase();
-    const adminPassword = process.env.ADMIN_PASSWORD || 'admin123';
-    const existing = await authRepository.findByUsername(adminEmail);
-    if (!existing) {
-      const passwordHash = bcrypt.hashSync(adminPassword, 10);
-      await authRepository.createUser({ username: adminEmail, passwordHash });
-      console.log(`[AUTH] Default admin user created: ${adminEmail}`);
-    }
-  }
+
 
   // YENİ: Şifre Sıfırlama
   async forgotPassword(email: string): Promise<{ success: boolean }> {

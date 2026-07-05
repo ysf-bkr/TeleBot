@@ -47,7 +47,7 @@ export default function SetupView() {
       .then(res => res.json())
       .then(data => {
         if (data.configured) {
-          toast.info('System is already configured.');
+          toast.info(i18n.t('setup.already_configured'));
           navigate('/login');
         }
       })
@@ -61,7 +61,7 @@ export default function SetupView() {
       secret += chars.charAt(Math.floor(Math.random() * chars.length));
     }
     setJwtSecret(secret);
-    toast.success('Generated secure random secret!');
+    toast.success(i18n.t('setup.gen_secret_success'));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -207,7 +207,7 @@ export default function SetupView() {
                   required
                   value={jwtSecret}
                   onChange={e => setJwtSecret(e.target.value)}
-                  placeholder="At least 32 characters recommended"
+                  placeholder={i18n.t('setup.jwt_placeholder')}
                   className={css({ flex: 1 })}
                 />
                 <Button type="button" variant="secondary" onClick={generateRandomSecret} className={css({ px: '3', flexShrink: 0 })}>
@@ -245,7 +245,7 @@ export default function SetupView() {
                   required
                   value={adminPassword}
                   onChange={e => setAdminPassword(e.target.value)}
-                  placeholder="Min 6 characters"
+                  placeholder={i18n.t('setup.password_placeholder')}
                 />
               </div>
             </div>

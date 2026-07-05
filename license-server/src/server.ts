@@ -55,7 +55,7 @@ fastify.post('/api/license/activate', async (request, reply) => {
   );
 
   if (existingActivation) {
-    db.updateHeartbeat(existingActivation.id);
+    await db.updateHeartbeat(existingActivation.id);
     
     // Calculate trial/license expiration date
     const trialDays = 7;
@@ -88,7 +88,7 @@ fastify.post('/api/license/activate', async (request, reply) => {
   // Perform activation
   let newAct;
   try {
-    newAct = db.addActivation(license.id, domain, fingerprint);
+    newAct = await db.addActivation(license.id, domain, fingerprint);
   } catch (err: any) {
     return reply.code(500).send({ error: 'Database Error', message: 'Could not write activation record.' });
   }
@@ -139,7 +139,7 @@ fastify.post('/api/license/heartbeat', async (request, reply) => {
       a => a.license_id === license.id && a.fingerprint === fingerprint
     );
     if (activation) {
-      db.updateHeartbeat(activation.id);
+      await db.updateHeartbeat(activation.id);
     }
 
     // Issue refreshed token
@@ -168,7 +168,7 @@ fastify.post('/api/license/deactivate', async (request, reply) => {
     return reply.code(404).send({ error: 'License Not Found', message: 'Invalid license key.' });
   }
 
-  const success = db.deleteActivation(license.id, domain, fingerprint);
+  const success = await db.deleteActivation(license.id, domain, fingerprint);
 
   if (!success) {
     return reply.code(404).send({ error: 'Record Not Found', message: 'No activation found matching these details.' });
@@ -227,7 +227,7 @@ fastify.post('/api/admin/licenses', async (request, reply) => {
   if (licenseType === 'unlimited') maxActivations = 999999;
 
   try {
-    const newLicense = db.addLicense(
+    const newLicense = await db.addLicense(
       generatedKey,
       customerEmail,
       licenseType,

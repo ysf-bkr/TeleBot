@@ -112,6 +112,18 @@ function readDb(): DatabaseState {
   return JSON.parse(content);
 }
 
+class WriteQueue {
+  private queue: Promise<any> = Promise.resolve();
+
+  run<T>(task: () => T): Promise<T> {
+    const next = this.queue.then(() => task());
+    this.queue = next.catch(() => {});
+    return next;
+  }
+}
+
+const writeQueue = new WriteQueue();
+
 function writeDb(state: DatabaseState) {
   const tempPath = `${dbPath}.tmp`;
   fs.writeFileSync(tempPath, JSON.stringify(state, null, 2), 'utf8');
@@ -135,38 +147,44 @@ export const db = {
     return this.getActivations().filter(a => a.license_id === licenseId);
   },
 
-  addActivation(licenseId: number, domain: string, fingerprint: string): Activation {
-    const state = readDb();
-    const newActivation: Activation = {
-      id: state.activations.length > 0 ? Math.max(...state.activations.map(a => a.id)) + 1 : 1,
-      license_id: licenseId,
-      domain,
-      fingerprint,
-      activated_at: new Date().toISOString(),
-      last_heartbeat: new Date().toISOString()
-    };
-    state.activations.push(newActivation);
-    writeDb(state);
-    return newActivation;
-  },
-
-  updateHeartbeat(activationId: number) {
-    const state = readDb();
-    const activation = state.activations.find(a => a.id === activationId);
-    if (activation) {
-      activation.last_heartbeat = new Date().toISOString();
+  addActivation(licenseId: number, domain: string, fingerprint: string): Promise<Activation> {
+    return writeQueue.run(() => {
+      const state = readDb();
+      const newActivation: Activation = {
+        id: state.activations.length > 0 ? Math.max(...state.activations.map(a => a.id)) + 1 : 1,
+        license_id: licenseId,
+        domain,
+        fingerprint,
+        activated_at: new Date().toISOString(),
+        last_heartbeat: new Date().toISOString()
+      };
+      state.activations.push(newActivation);
       writeDb(state);
-    }
+      return newActivation;
+    });
   },
 
-  deleteActivation(licenseId: number, domain: string, fingerprint: string): boolean {
-    const state = readDb();
-    const initialLength = state.activations.length;
-    state.activations = state.activations.filter(
-      a => !(a.license_id === licenseId && a.domain === domain && a.fingerprint === fingerprint)
-    );
-    writeDb(state);
-    return state.activations.length < initialLength;
+  updateHeartbeat(activationId: number): Promise<void> {
+    return writeQueue.run(() => {
+      const state = readDb();
+      const activation = state.activations.find(a => a.id === activationId);
+      if (activation) {
+        activation.last_heartbeat = new Date().toISOString();
+        writeDb(state);
+      }
+    });
+  },
+
+  deleteActivation(licenseId: number, domain: string, fingerprint: string): Promise<boolean> {
+    return writeQueue.run(() => {
+      const state = readDb();
+      const initialLength = state.activations.length;
+      state.activations = state.activations.filter(
+        a => !(a.license_id === licenseId && a.domain === domain && a.fingerprint === fingerprint)
+      );
+      writeDb(state);
+      return state.activations.length < initialLength;
+    });
   },
 
   addLicense(
@@ -176,27 +194,29 @@ export const db = {
     maxActivations: number, 
     expiresAt: string | null = null, 
     source: string = 'API'
-  ): License {
-    const state = readDb();
-    const existing = state.licenses.find(l => l.license_key === licenseKey);
-    if (existing) {
-      throw new Error('License key already exists');
-    }
+  ): Promise<License> {
+    return writeQueue.run(() => {
+      const state = readDb();
+      const existing = state.licenses.find(l => l.license_key === licenseKey);
+      if (existing) {
+        throw new Error('License key already exists');
+      }
 
-    const newLicense: License = {
-      id: state.licenses.length > 0 ? Math.max(...state.licenses.map(l => l.id)) + 1 : 1,
-      license_key: licenseKey,
-      customer_email: customerEmail,
-      license_type: licenseType,
-      max_activations: maxActivations,
-      status: 'active',
-      source,
-      expires_at: expiresAt,
-      created_at: new Date().toISOString()
-    };
-    
-    state.licenses.push(newLicense);
-    writeDb(state);
-    return newLicense;
+      const newLicense: License = {
+        id: state.licenses.length > 0 ? Math.max(...state.licenses.map(l => l.id)) + 1 : 1,
+        license_key: licenseKey,
+        customer_email: customerEmail,
+        license_type: licenseType,
+        max_activations: maxActivations,
+        status: 'active',
+        source,
+        expires_at: expiresAt,
+        created_at: new Date().toISOString()
+      };
+      
+      state.licenses.push(newLicense);
+      writeDb(state);
+      return newLicense;
+    });
   }
 };

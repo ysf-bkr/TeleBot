@@ -113,7 +113,9 @@ function readDb(): DatabaseState {
 }
 
 function writeDb(state: DatabaseState) {
-  fs.writeFileSync(dbPath, JSON.stringify(state, null, 2), 'utf8');
+  const tempPath = `${dbPath}.tmp`;
+  fs.writeFileSync(tempPath, JSON.stringify(state, null, 2), 'utf8');
+  fs.renameSync(tempPath, dbPath);
 }
 
 export const db = {

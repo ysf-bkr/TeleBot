@@ -1,5 +1,6 @@
-import { Info, KeyRound, MessageSquare, RefreshCw, RotateCcw, Save } from 'lucide-react';
+import { Info, KeyRound, MessageSquare, RefreshCw, RotateCcw, Save, Shield, Globe, Activity, CheckCircle2, AlertTriangle } from 'lucide-react';
 import React from 'react';
+import { toast } from 'sonner';
 import { css } from '../../../styled-system/css';
 import { flex, stack } from '../../../styled-system/patterns';
 import { Button } from '../../components/ui/Button';
@@ -35,7 +36,64 @@ export function SettingsView({
 }: SettingsViewProps) {
   const [profileName, setProfileName] = React.useState('');
   const [profileDesc, setProfileDesc] = React.useState('');
-  const [activeTab, setActiveTab] = React.useState<'bot' | 'welcome'>('bot');
+  const [activeTab, setActiveTab] = React.useState<'bot' | 'welcome' | 'license'>('bot');
+
+  // Licensing management local state
+  const [licenseData, setLicenseData] = React.useState<any>(null);
+  const [licenseKeyInput, setLicenseKeyInput] = React.useState('');
+  const [licLoading, setLicLoading] = React.useState(false);
+
+  const fetchLicenseData = async () => {
+    try {
+      const res = await fetch('/api/settings/license');
+      const data = await res.json();
+      setLicenseData(data);
+      setLicenseKeyInput(data.licenseKey || '');
+    } catch (_) {}
+  };
+
+  React.useEffect(() => {
+    if (activeTab === 'license') {
+      fetchLicenseData();
+    }
+  }, [activeTab]);
+
+  const handleActivateLicense = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLicLoading(true);
+    try {
+      const response = await fetch('/api/settings/license', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ licenseKey: licenseKeyInput })
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || 'Aktivasyon başarısız oldu.');
+      toast.success('Lisans anahtarı başarıyla aktif edildi!');
+      fetchLicenseData();
+    } catch (err: any) {
+      toast.error(err.message || 'Aktivasyon hatası.');
+    } finally {
+      setLicLoading(false);
+    }
+  };
+
+  const handleDeactivateLicense = async () => {
+    if (!confirm('Lisansı kaldırmak istediğinizden emin misiniz? Bu işlem sunucudaki slotu serbest bırakacaktır.')) return;
+    setLicLoading(true);
+    try {
+      const response = await fetch('/api/settings/license/deactivate', {
+        method: 'POST'
+      });
+      const data = await response.json();
+      toast.success(data.message || 'Lisans başarıyla kaldırıldı.');
+      fetchLicenseData();
+    } catch (err: any) {
+      toast.error(err.message || 'Lisans kaldırılamadı.');
+    } finally {
+      setLicLoading(false);
+    }
+  };
 
   React.useEffect(() => {
     if (botInfo?.first_name) setProfileName(botInfo.first_name);
@@ -84,6 +142,7 @@ export function SettingsView({
         {[
           { id: 'bot', label: 'Bot Yapılandırması & Profil', icon: KeyRound },
           { id: 'welcome', label: 'Hoş Geldin & Kurallar', icon: MessageSquare },
+          { id: 'license', label: 'Lisans & Aktivasyon', icon: Shield },
         ].map((tab) => {
           const Icon = tab.icon;
           const isActive = activeTab === tab.id;
@@ -196,6 +255,104 @@ export function SettingsView({
                 <Button onClick={resetToDefault} variant="ghost" size="sm"><RotateCcw size={16} /> Varsayılana Sıfırla</Button>
                 <Button onClick={onSaveSettings}><Save size={18} /> Kaydet</Button>
               </div>
+            </div>
+          </Card>
+        )}
+
+        {activeTab === 'license' && licenseData && (
+          <Card>
+            <div className={flex({ align: 'center', gap: '2', mb: '6' })}>
+              <div className={css({ p: '1.5', borderRadius: 'lg', bg: 'bgButtonSecondary', color: 'primary' })}><Shield size={18} /></div>
+              <div className={css({ fontWeight: '600', color: 'textMain' })}>Lisans & Aktivasyon Ayarları</div>
+            </div>
+
+            <div className={stack({ gap: '6' })}>
+              {/* License Info Banner */}
+              <div className={flex({ 
+                p: '4', 
+                borderRadius: 'xl', 
+                bg: licenseData.status?.isValid ? 'rgba(34, 197, 94, 0.1)' : 'rgba(239, 68, 68, 0.1)',
+                border: '1px solid',
+                borderColor: licenseData.status?.isValid ? 'rgba(34, 197, 94, 0.2)' : 'rgba(239, 68, 68, 0.2)',
+                gap: '3',
+                align: 'center'
+              })}>
+                {licenseData.status?.isValid ? (
+                  <CheckCircle2 className={css({ color: 'green.500', flexShrink: 0 })} size={24} />
+                ) : (
+                  <AlertTriangle className={css({ color: 'red.500', flexShrink: 0 })} size={24} />
+                )}
+                <div>
+                  <div className={css({ fontWeight: '700', color: 'textMain', fontSize: 'sm' })}>
+                    {licenseData.status?.isTrial 
+                      ? 'Deneme (Trial) Sürümü Aktif' 
+                      : licenseData.status?.isValid 
+                        ? 'Lisans Başarıyla Aktif Edildi' 
+                        : 'Lisans Geçersiz / Bloke Edildi'}
+                  </div>
+                  <div className={css({ fontSize: 'xs', color: 'textMuted', mt: '0.5' })}>
+                    {licenseData.status?.isTrial ? (
+                      <>Deneme sürenizin bitmesine kalan zaman: <strong>{
+                        (() => {
+                          const diff = new Date(licenseData.status.trialExpires).getTime() - Date.now();
+                          if (diff <= 0) return 'Süre bitti';
+                          const days = Math.floor(diff / (24 * 60 * 60 * 1000));
+                          const hours = Math.floor((diff % (24 * 60 * 60 * 1000)) / (60 * 60 * 1000));
+                          return `${days} gün ${hours} saat`;
+                        })()
+                      }</strong></>
+                    ) : licenseData.status?.isValid ? (
+                      'Tüm platform özellikleri kilitleri açılmış ve kullanıma hazırdır.'
+                    ) : (
+                      'Geçerli bir lisans girilmediği için platform özellikleri kısıtlanmıştır.'
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* Hardware Fingerprint & Domain Info */}
+              <div className={flex({ gap: '4', flexDir: { base: 'column', sm: 'row' } })}>
+                <div className={css({ flex: 1 })}>
+                  <div className={css({ fontSize: 'xs', fontWeight: '700', color: 'textMuted', textTransform: 'uppercase', mb: '1' })}>Aktif Domain</div>
+                  <div className={css({ px: '3', py: '2', bg: 'bgCanvas', borderRadius: 'lg', border: '1px solid token(colors.borderMain)', fontSize: 'sm', fontFamily: 'monospace', color: 'textMain' })}>
+                    {licenseData.domain}
+                  </div>
+                </div>
+                <div className={css({ flex: 1 })}>
+                  <div className={css({ fontSize: 'xs', fontWeight: '700', color: 'textMuted', textTransform: 'uppercase', mb: '1' })}>Cihaz Parmak İzi (Fingerprint)</div>
+                  <div className={css({ px: '3', py: '2', bg: 'bgCanvas', borderRadius: 'lg', border: '1px solid token(colors.borderMain)', fontSize: 'sm', fontFamily: 'monospace', color: 'textMain' })}>
+                    {licenseData.fingerprint}
+                  </div>
+                </div>
+              </div>
+
+              {/* License Update Form */}
+              <form onSubmit={handleActivateLicense} className={stack({ gap: '3' })}>
+                <div className={css({ fontSize: 'sm', fontWeight: '600', color: 'textMain' })}>Yeni Lisans Girişi</div>
+                <div className={flex({ gap: '3', flexDir: { base: 'column', sm: 'row' } })}>
+                  <Input 
+                    className={css({ fontFamily: 'monospace', flex: 1 })} 
+                    placeholder="TELE-XXXX-XXXX-XXXX-XXXX" 
+                    value={licenseKeyInput} 
+                    onChange={e => setLicenseKeyInput(e.target.value)} 
+                  />
+                  <Button type="submit" disabled={licLoading}>
+                    Aktive Et
+                  </Button>
+                </div>
+                <div className={css({ fontSize: 'xs', color: 'textMuted' })}>
+                  Eğer lisans anahtarınız yoksa deneme modunu kullanmaya devam edebilirsiniz.
+                </div>
+              </form>
+
+              {/* Deactivate Button */}
+              {licenseData.licenseKey && (
+                <div className={flex({ justify: 'flex-end', borderTop: '1px solid token(colors.borderMain)', pt: '4', mt: '2' })}>
+                  <Button type="button" variant="ghost" onClick={handleDeactivateLicense} disabled={licLoading} className={css({ color: 'primary', _hover: { bg: 'rgba(239, 68, 68, 0.08)' } })}>
+                    Aktivasyonu Kaldır (Lisansı Serbest Bırak)
+                  </Button>
+                </div>
+              )}
             </div>
           </Card>
         )}

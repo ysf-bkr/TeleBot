@@ -85,6 +85,9 @@ export const settings = {
   restart: () => api.post('/settings/restart'),
   getBotInfo: () => api.get<BotStatus>('/settings/bot-info'),
   updateProfile: (data: { name?: string; description?: string }) => api.post('/settings/profile', data),
+  getLicense: () => api.get<any>('/settings/license'),
+  activateLicense: (licenseKey: string) => api.post('/settings/license', { licenseKey }),
+  deactivateLicense: () => api.post('/settings/license/deactivate'),
 };
 
 export const chatsApi = {

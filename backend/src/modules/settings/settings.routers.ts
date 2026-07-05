@@ -1,6 +1,36 @@
 import { FastifyInstance } from 'fastify';
 import { getDb } from '../../db/index.js';
 import { getStatus, restartBot } from '../../services/bot.service.js';
+import licenseService from '../../services/license.service.js';
+import axios from 'axios';
+import fs from 'fs';
+import path from 'path';
+
+function updateEnvFile(updates: Record<string, string>) {
+  const envPath = path.resolve(process.cwd(), '.env');
+  let content = '';
+  if (fs.existsSync(envPath)) {
+    content = fs.readFileSync(envPath, 'utf8');
+  }
+  const lines = content.split('\n');
+  for (const [key, val] of Object.entries(updates)) {
+    let found = false;
+    for (let i = 0; i < lines.length; i++) {
+      if (lines[i].startsWith(`${key}=`) || lines[i].startsWith(`# ${key}=`) || lines[i].startsWith(`#${key}=`)) {
+        lines[i] = `${key}="${val.replace(/"/g, '\\"')}"`;
+        found = true;
+        break;
+      }
+    }
+    if (!found) {
+      lines.push(`${key}="${val.replace(/"/g, '\\"')}"`);
+    }
+  }
+  fs.writeFileSync(envPath, lines.join('\n'), 'utf8');
+  for (const [key, val] of Object.entries(updates)) {
+    process.env[key] = val;
+  }
+}
 
 // Helper to map DB config to camelCase API response
 function mapConfig(dbRow: any) {
@@ -195,6 +225,77 @@ async function settingsRouters(fastify: FastifyInstance): Promise<void> {
     }
     const status = getStatus(current.token);
     return status;
+  });
+
+  // GET /api/settings/license
+  fastify.get('/license', async (request: any, reply: any) => {
+    return {
+      licenseKey: process.env.LICENSE_KEY || '',
+      domain: licenseService.getDomain(),
+      fingerprint: licenseService.getFingerprint(),
+      status: licenseService.getStatus()
+    };
+  });
+
+  // POST /api/settings/license
+  fastify.post('/license', async (request: any, reply: any) => {
+    const { licenseKey } = request.body || {};
+    if (!licenseKey) {
+      reply.code(400);
+      return { error: 'License key is required.' };
+    }
+
+    try {
+      const result = await licenseService.activate(licenseKey);
+      if (result.success) {
+        updateEnvFile({
+          LICENSE_KEY: licenseKey,
+          ACTIVATION_TOKEN: process.env.ACTIVATION_TOKEN || ''
+        });
+        return { success: true, message: 'License key activated successfully.' };
+      }
+      reply.code(400);
+      return { error: result.message || 'Activation failed.' };
+    } catch (err: any) {
+      reply.code(500);
+      return { error: err.message || 'Connection to license server failed.' };
+    }
+  });
+
+  // POST /api/settings/license/deactivate
+  fastify.post('/license/deactivate', async (request: any, reply: any) => {
+    const licenseKey = process.env.LICENSE_KEY || '';
+    if (!licenseKey) {
+      reply.code(400);
+      return { error: 'No active license key found to deactivate.' };
+    }
+
+    try {
+      const domain = licenseService.getDomain();
+      const fingerprint = licenseService.getFingerprint();
+
+      // Call remote license server to release activation slot
+      await axios.post('http://localhost:3001/api/license/deactivate', {
+        licenseKey,
+        domain,
+        fingerprint
+      });
+
+      // Clear env variables
+      updateEnvFile({
+        LICENSE_KEY: '',
+        ACTIVATION_TOKEN: ''
+      });
+
+      return { success: true, message: 'License deactivated successfully. Reverted to trial mode.' };
+    } catch (err: any) {
+      // In case server is offline, clear locally anyway to let them input a new key
+      updateEnvFile({
+        LICENSE_KEY: '',
+        ACTIVATION_TOKEN: ''
+      });
+      return { success: true, warning: 'Cleared locally, but license server was unreachable.', message: 'License cleared.' };
+    }
   });
 }
 

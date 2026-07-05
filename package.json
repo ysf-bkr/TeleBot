@@ -1,0 +1,41 @@
+{
+  "name": "telegram-bot-platform",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "concurrently --kill-others \"npm:dev:backend\" \"npm:dev:frontend\"",
+    "dev:backend": "cd backend && npm run dev",
+    "dev:frontend": "cd frontend && npm run dev",
+    "build": "concurrently \"npm:build:backend\" \"npm:build:frontend\"",
+    "build:backend": "cd backend && npm run build",
+    "build:frontend": "cd frontend && npm run build",
+    "typecheck": "concurrently \"npm:typecheck:backend\" \"npm:typecheck:frontend\" || echo 'Typecheck done'",
+    "typecheck:backend": "cd backend && npm run typecheck",
+    "typecheck:frontend": "cd frontend && npm run typecheck",
+    "check": "npm run typecheck && npm run build:frontend",
+    "install:all": "npm install && cd backend && npm install && cd ../frontend && npm install",
+    "atabey:status": "atabey status",
+    "atabey:trace": "atabey trace:new",
+    "atabey:verify": "atabey verify-contract",
+    "atabey:check": "atabey check",
+    "atabey:test": "vitest run",
+    "atabey:test:watch": "vitest",
+    "atabey:build": "npm run build -w packages/atabey-mcp"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2",
+    "atabey": "^0.0.23",
+    "@types/node": "^25.9.1",
+    "tsx": "^4.22.3",
+    "vitest": "^3.0.0"
+  },
+  "dependencies": {
+    "atabey-shared": "^0.0.23",
+    "typescript": "^5.9.3"
+  },
+  "type": "module",
+  "atabey": {
+    "version": "0.0.23",
+    "initializedAt": "2026-07-02T18:48:50.734Z"
+  }
+}

@@ -1,0 +1,41 @@
+{
+  "name": "backend",
+  "version": "1.0.0",
+  "description": "",
+  "main": "dist/index.js",
+  "type": "module",
+  "scripts": {
+    "dev": "tsx watch src/index.ts",
+    "start": "node dist/index.js",
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc --noEmit",
+    "db:init": "tsx -e \"import('./src/db/index.js').then(m => m.initializeDatabase?.().then(()=>console.log('DB ready')))\"",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@fastify/cors": "^11.2.0",
+    "@fastify/helmet": "^13.0.2",
+    "@fastify/rate-limit": "^11.1.0",
+    "@fastify/websocket": "^11.2.0",
+    "bcryptjs": "^3.0.3",
+    "better-sqlite3": "^12.11.1",
+    "dotenv": "^17.4.2",
+    "fastify": "^5.9.0",
+    "fastify-plugin": "^6.0.0",
+    "jsonwebtoken": "^9.0.3",
+    "kysely": "^0.29.2",
+    "socket.io": "^4.8.3",
+    "telegraf": "^4.16.3"
+  },
+  "devDependencies": {
+    "@types/better-sqlite3": "^7.6.11",
+    "@types/jsonwebtoken": "^9.0.7",
+    "@types/node": "^22.0.0",
+    "nodemon": "^3.1.14",
+    "tsx": "^4.22.3",
+    "typescript": "^5.9.3"
+  }
+}

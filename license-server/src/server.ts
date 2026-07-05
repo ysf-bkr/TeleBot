@@ -3,6 +3,7 @@ import cors from '@fastify/cors';
 import jwt from 'jsonwebtoken';
 import { db } from './db.js';
 import 'dotenv/config';
+import crypto from 'crypto';
 
 const fastify = Fastify({ logger: true });
 
@@ -216,9 +217,9 @@ fastify.post('/api/admin/licenses', async (request, reply) => {
     return reply.code(400).send({ error: 'Validation Error', message: 'licenseType must be regular, extended, or unlimited.' });
   }
 
-  // Generate a random high-entropy license key if not provided
+  // Generate a random high-entropy license key using CSPRNG if not provided
   const generatedKey = licenseKey || 'TELE-' + Array.from({ length: 4 }, () => 
-    Math.random().toString(36).substring(2, 7).toUpperCase()
+    crypto.randomBytes(3).toString('hex').substring(0, 5).toUpperCase()
   ).join('-');
 
   let maxActivations = 1;

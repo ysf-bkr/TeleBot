@@ -42,6 +42,7 @@ function mapConfig(dbRow: any) {
     parseMode: dbRow.parse_mode,
     webhookDomain: dbRow.webhook_domain,
     token: dbRow.token,
+    settings: dbRow.settings ? JSON.parse(dbRow.settings) : null,
   };
 }
 
@@ -84,6 +85,7 @@ async function settingsRouters(fastify: FastifyInstance): Promise<void> {
     if (body.welcomeEnabled !== undefined) updateData.welcome_enabled = body.welcomeEnabled ? 1 : 0;
     if (body.parseMode !== undefined) updateData.parse_mode = body.parseMode;
     if (body.webhookDomain !== undefined) updateData.webhook_domain = body.webhookDomain;
+    if (body.settings !== undefined) updateData.settings = typeof body.settings === 'object' ? JSON.stringify(body.settings) : body.settings;
 
     // Get current config to see if there is one
     const current = await db.selectFrom('bot_config').select('id').executeTakeFirst();

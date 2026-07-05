@@ -20,6 +20,7 @@ export async function runMigrations(db: Kysely<Database>) {
     .addColumn('welcome_enabled', 'integer', (col) => col.notNull().defaultTo(1))
     .addColumn('parse_mode', 'text', (col) => col.notNull().defaultTo('HTML'))
     .addColumn('webhook_domain', 'text')
+    .addColumn('settings', 'text')
     .addColumn('created_at', 'text', (col) =>
       col.notNull().defaultTo('CURRENT_TIMESTAMP')
     )
@@ -27,6 +28,19 @@ export async function runMigrations(db: Kysely<Database>) {
       col.notNull().defaultTo('CURRENT_TIMESTAMP')
     )
     .execute();
+
+  // Alter table for existing databases if settings column is missing
+  try {
+    const tableInfo = await db.introspection.getTables();
+    const botConfigTable = tableInfo.find(t => t.name === 'bot_config');
+    const hasSettings = botConfigTable?.columns.some(c => c.name === 'settings');
+    if (botConfigTable && !hasSettings) {
+      await db.schema.alterTable('bot_config').addColumn('settings', 'text').execute();
+      console.log('[MIGRATION] Added settings column to bot_config table.');
+    }
+  } catch (e) {
+    console.error('[MIGRATION] Error altering bot_config:', e);
+  }
 
   // Ensure webhook_domain column exists (for existing DBs)
   await addColumnIfNotExists(db, 'bot_config', 'webhook_domain', 'TEXT');

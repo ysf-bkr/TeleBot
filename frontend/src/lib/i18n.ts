@@ -326,6 +326,16 @@ const translations: Record<Language, Record<string, string>> = {
     'settings.license_deactivate_confirm': 'Lisansı kaldırmak istediğinizden emin misiniz? Bu işlem sunucudaki slotu serbest bırakacaktır.',
     'settings.license_activate_success': 'Lisans anahtarı başarıyla aktif edildi!',
     'settings.license_deactivate_success': 'Lisans başarıyla kaldırıldı.',
+
+    // AI Settings
+    'settings.ai_tab': 'Yapay Zeka (AI)',
+    'settings.ai_tab_title': 'Yapay Zeka Moderasyon Ayarları',
+    'settings.ai_provider': 'Yapay Zeka Servisi',
+    'settings.ai_model': 'Model Adı',
+    'settings.ai_api_key': 'API Anahtarı',
+    'settings.ai_custom_url': 'Özel API URL (Local/Ollama)',
+    'settings.ai_prompt': 'Sistem Yönergesi (System Prompt)',
+    'settings.ai_desc': 'Yapay zeka tabanlı moderasyonun hangi servis üzerinden çalışacağını ve hangi kuralları uygulayacağını buradan belirleyebilirsiniz.',
   },
 
   en: {
@@ -651,6 +661,16 @@ const translations: Record<Language, Record<string, string>> = {
     'settings.license_deactivate_confirm': 'Are you sure you want to deactivate this license? This will release the slot on the server.',
     'settings.license_activate_success': 'License key activated successfully!',
     'settings.license_deactivate_success': 'License deactivated successfully.',
+
+    // AI Settings
+    'settings.ai_tab': 'AI Moderation',
+    'settings.ai_tab_title': 'AI Moderation Settings',
+    'settings.ai_provider': 'AI Provider',
+    'settings.ai_model': 'Model Name',
+    'settings.ai_api_key': 'API Key',
+    'settings.ai_custom_url': 'Custom API URL (Local/Ollama)',
+    'settings.ai_prompt': 'System Prompt',
+    'settings.ai_desc': 'Configure which AI service powers advanced moderation and customize the evaluation prompt templates.',
   }
 };
 

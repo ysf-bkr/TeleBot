@@ -2,6 +2,7 @@ import blacklistRepo from '../../repositories/blacklist.repository.js';
 import globalBlacklist from '../../repositories/globalBlacklist.repository.js';
 import moderationLogRepo from '../../repositories/moderationLog.repository.js';
 import moderationRepo from './moderation.repository.js';
+import { getDb } from '../../db/index.js';
 
 class ModerationService {
   async getOrCreateSettings(chatId: string | number): Promise<any> {
@@ -24,36 +25,105 @@ class ModerationService {
     return blacklistRepo.removeWord(id, 'global');
   }
 
-  async checkWithGemini(text: string): Promise<any> {
-    const apiKey = process.env.GEMINI_API_KEY;
-    if (!apiKey) return { violated: false };
-
-    try {
-      const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
-      const response = await fetch(url, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          contents: [{
-            parts: [{
-              text: `Sen bir Telegram grubu yapay zeka moderatörüsün. Aşağıdaki mesajı analiz et ve kuralları (ağır küfür, nefret söylemi, taciz, dolandırıcılık, yasadışı reklam) ihlal edip etmediğini belirle.
+  async checkWithAi(text: string): Promise<any> {
+    const db = getDb();
+    let aiProvider = 'gemini';
+    let aiModel = 'gemini-2.5-flash';
+    let apiKey = process.env.GEMINI_API_KEY || '';
+    let customUrl = '';
+    let customPrompt = `Sen bir Telegram grubu yapay zeka moderatörüsün. Aşağıdaki mesajı analiz et ve kuralları (ağır küfür, nefret söylemi, taciz, dolandırıcılık, yasadışı reklam) ihlal edip etmediğini belirle.
 Sonucu tam olarak şu JSON şablonunda döndür (başka hiçbir metin veya markdown backtick ekleme, sadece saf JSON):
 {"violated": true, "reason": "ihlal nedeni açıklaması", "action": "delete" | "warn" | "none"}
 
-Analiz edilecek mesaj: "${text.replace(/"/g, '\\"')}"`
-            }]
-          }]
-        })
-      });
+Analiz edilecek mesaj: "{text}"`;
 
-      const data = await response.json() as any;
-      const responseText = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
-      
+    try {
+      const config = await db.selectFrom('bot_config').selectAll().executeTakeFirst();
+      if (config && config.settings) {
+        const parsed = JSON.parse(config.settings);
+        if (parsed.aiProvider) aiProvider = parsed.aiProvider;
+        if (parsed.aiModel) aiModel = parsed.aiModel;
+        if (parsed.aiApiKey) apiKey = parsed.aiApiKey;
+        if (parsed.aiPrompt) customPrompt = parsed.aiPrompt;
+        if (parsed.aiCustomUrl) customUrl = parsed.aiCustomUrl;
+      }
+    } catch (_) {}
+
+    if (!apiKey && aiProvider !== 'local') return { violated: false };
+
+    const formattedPrompt = customPrompt.replace('{text}', text.replace(/"/g, '\\"'));
+
+    try {
+      let responseText = '';
+
+      if (aiProvider === 'gemini') {
+        const url = `https://generativelanguage.googleapis.com/v1beta/models/${aiModel}:generateContent?key=${apiKey}`;
+        const response = await fetch(url, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            contents: [{
+              parts: [{
+                text: formattedPrompt
+              }]
+            }]
+          })
+        });
+
+        const data = await response.json() as any;
+        responseText = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
+      } 
+      else if (aiProvider === 'openai' || aiProvider === 'deepseek' || aiProvider === 'local') {
+        let url = 'https://api.openai.com/v1/chat/completions';
+        if (aiProvider === 'deepseek') url = 'https://api.deepseek.com/chat/completions';
+        if (aiProvider === 'local' && customUrl) url = customUrl;
+
+        const headers: Record<string, string> = {
+          'Content-Type': 'application/json'
+        };
+        if (apiKey) {
+          headers['Authorization'] = `Bearer ${apiKey}`;
+        }
+
+        const response = await fetch(url, {
+          method: 'POST',
+          headers,
+          body: JSON.stringify({
+            model: aiModel,
+            messages: [{ role: 'user', content: formattedPrompt }],
+            temperature: 0.0,
+            response_format: { type: 'json_object' }
+          })
+        });
+
+        const data = await response.json() as any;
+        responseText = data.choices?.[0]?.message?.content || '';
+      } 
+      else if (aiProvider === 'claude') {
+        const url = 'https://api.anthropic.com/v1/messages';
+        const response = await fetch(url, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-api-key': apiKey,
+            'anthropic-version': '2023-06-01'
+          },
+          body: JSON.stringify({
+            model: aiModel,
+            max_tokens: 1024,
+            messages: [{ role: 'user', content: formattedPrompt }]
+          })
+        });
+
+        const data = await response.json() as any;
+        responseText = data.content?.[0]?.text || '';
+      }
+
       const cleanJson = responseText.replace(/```json|```/g, '').trim();
       const result = JSON.parse(cleanJson);
       return result;
     } catch (err) {
-      console.error('[AI MODERATION] Gemini API çağrı hatası:', err);
+      console.error(`[AI MODERATION] ${aiProvider.toUpperCase()} API çağrı hatası:`, err);
       return { violated: false };
     }
   }
@@ -89,9 +159,9 @@ Analiz edilecek mesaj: "${text.replace(/"/g, '\\"')}"`
       }
     }
 
-    // Yapay Zeka Destekli Moderasyon (Google Gemini API)
+    // Yapay Zeka Destekli Moderasyon (Gemini / OpenAI / Claude)
     if (settings.ai_moderation_enabled && text.trim().length > 3) {
-      const aiResult = await this.checkWithGemini(text);
+      const aiResult = await this.checkWithAi(text);
       if (aiResult && aiResult.violated) {
         return { 
           violated: true, 

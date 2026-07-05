@@ -1,4 +1,4 @@
-import { Info, KeyRound, MessageSquare, RefreshCw, RotateCcw, Save, Shield, Globe, Activity, CheckCircle2, AlertTriangle } from 'lucide-react';
+import { Info, KeyRound, MessageSquare, RefreshCw, RotateCcw, Save, Shield, Globe, Activity, CheckCircle2, AlertTriangle, Sparkles } from 'lucide-react';
 import React from 'react';
 import { toast } from 'sonner';
 import { i18n } from '../../lib/i18n';
@@ -37,12 +37,72 @@ export function SettingsView({
 }: SettingsViewProps) {
   const [profileName, setProfileName] = React.useState('');
   const [profileDesc, setProfileDesc] = React.useState('');
-  const [activeTab, setActiveTab] = React.useState<'bot' | 'welcome' | 'license'>('bot');
+  const [activeTab, setActiveTab] = React.useState<'bot' | 'welcome' | 'license' | 'ai'>('bot');
 
   // Licensing management local state
   const [licenseData, setLicenseData] = React.useState<any>(null);
   const [licenseKeyInput, setLicenseKeyInput] = React.useState('');
   const [licLoading, setLicLoading] = React.useState(false);
+
+  // AI Moderation configuration local state
+  const [aiProvider, setAiProvider] = React.useState('gemini');
+  const [aiModel, setAiModel] = React.useState('gemini-2.5-flash');
+  const [aiApiKey, setAiApiKey] = React.useState('');
+  const [aiCustomUrl, setAiCustomUrl] = React.useState('');
+  const [aiPrompt, setAiPrompt] = React.useState(`Sen bir Telegram grubu yapay zeka moderatörüsün. Aşağıdaki mesajı analiz et ve kuralları (ağır küfür, nefret söylemi, taciz, dolandırıcılık, yasadışı reklam) ihlal edip etmediğini belirle.
+Sonucu tam olarak şu JSON şablonunda döndür (başka hiçbir metin veya markdown backtick ekleme, sadece saf JSON):
+{"violated": true, "reason": "ihlal nedeni açıklaması", "action": "delete" | "warn" | "none"}
+
+Analiz edilecek mesaj: "{text}"`);
+  const [aiLoading, setAiLoading] = React.useState(false);
+
+  React.useEffect(() => {
+    if (settings?.settings) {
+      try {
+        const parsed = typeof settings.settings === 'string' ? JSON.parse(settings.settings) : settings.settings;
+        if (parsed.aiProvider) setAiProvider(parsed.aiProvider);
+        if (parsed.aiModel) setAiModel(parsed.aiModel);
+        if (parsed.aiApiKey) setAiApiKey(parsed.aiApiKey);
+        if (parsed.aiPrompt) setAiPrompt(parsed.aiPrompt);
+        if (parsed.aiCustomUrl) setAiCustomUrl(parsed.aiCustomUrl);
+      } catch (_) {}
+    }
+  }, [settings]);
+
+  const handleProviderChange = (provider: string) => {
+    setAiProvider(provider);
+    if (provider === 'gemini') setAiModel('gemini-2.5-flash');
+    else if (provider === 'openai') setAiModel('gpt-4o-mini');
+    else if (provider === 'deepseek') setAiModel('deepseek-chat');
+    else if (provider === 'claude') setAiModel('claude-3-5-haiku-20241022');
+    else if (provider === 'local') setAiModel('custom-model');
+  };
+
+  const handleSaveAiSettings = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setAiLoading(true);
+    try {
+      const response = await fetch('/api/settings', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          settings: {
+            aiProvider,
+            aiModel,
+            aiApiKey,
+            aiCustomUrl,
+            aiPrompt
+          }
+        })
+      });
+      if (!response.ok) throw new Error('AI settings save failed.');
+      toast.success(i18n.t('settings.saved'));
+    } catch (err: any) {
+      toast.error(err.message || 'Error occurred.');
+    } finally {
+      setAiLoading(false);
+    }
+  };
 
   const fetchLicenseData = async () => {
     try {
@@ -143,6 +203,7 @@ export function SettingsView({
         {[
           { id: 'bot', label: 'Bot Yapılandırması & Profil', icon: KeyRound },
           { id: 'welcome', label: 'Hoş Geldin & Kurallar', icon: MessageSquare },
+          { id: 'ai', label: i18n.t('settings.ai_tab'), icon: Sparkles },
           { id: 'license', label: 'Lisans & Aktivasyon', icon: Shield },
         ].map((tab) => {
           const Icon = tab.icon;
@@ -357,6 +418,89 @@ export function SettingsView({
                 </div>
               )}
             </div>
+          </Card>
+        )}
+
+        {activeTab === 'ai' && (
+          <Card>
+            <div className={flex({ align: 'center', gap: '2', mb: '6' })}>
+              <div className={css({ p: '1.5', borderRadius: 'lg', bg: 'bgButtonSecondary', color: 'primary' })}><Sparkles size={18} /></div>
+              <div className={css({ fontWeight: '600', color: 'textMain' })}>{i18n.t('settings.ai_tab_title')}</div>
+            </div>
+
+            <form onSubmit={handleSaveAiSettings} className={stack({ gap: '5' })}>
+              <div className={css({ fontSize: 'xs', color: 'textMuted' })}>
+                {i18n.t('settings.ai_desc')}
+              </div>
+
+              {/* Provider Selection */}
+              <div className={stack({ gap: '1.5' })}>
+                <label className={css({ fontSize: 'sm', fontWeight: '600', color: 'textMain' })}>{i18n.t('settings.ai_provider')}</label>
+                <select value={aiProvider} onChange={e => handleProviderChange(e.target.value)}>
+                  <option value="gemini">Google Gemini AI</option>
+                  <option value="openai">OpenAI GPT</option>
+                  <option value="deepseek">DeepSeek AI</option>
+                  <option value="claude">Anthropic Claude</option>
+                  <option value="local">Custom API / Local (Ollama)</option>
+                </select>
+              </div>
+
+              {/* Model & API Key Grid */}
+              <div className={flex({ gap: '4', flexDir: { base: 'column', sm: 'row' } })}>
+                <div className={css({ flex: 1 })}>
+                  <label className={css({ fontSize: 'sm', fontWeight: '600', color: 'textMain', display: 'block', mb: '1.5' })}>{i18n.t('settings.ai_model')}</label>
+                  <Input 
+                    type="text" 
+                    value={aiModel} 
+                    onChange={e => setAiModel(e.target.value)} 
+                    placeholder="e.g. gemini-2.5-flash or gpt-4o-mini"
+                  />
+                </div>
+                <div className={css({ flex: 1 })}>
+                  <label className={css({ fontSize: 'sm', fontWeight: '600', color: 'textMain', display: 'block', mb: '1.5' })}>{i18n.t('settings.ai_api_key')}</label>
+                  <Input 
+                    type="password" 
+                    value={aiApiKey} 
+                    onChange={e => setAiApiKey(e.target.value)} 
+                    placeholder={aiProvider === 'local' ? 'Optional for local endpoints' : 'API Key'}
+                  />
+                </div>
+              </div>
+
+              {/* Custom URL for Local/Ollama */}
+              {aiProvider === 'local' && (
+                <div className={stack({ gap: '1.5' })}>
+                  <label className={css({ fontSize: 'sm', fontWeight: '600', color: 'textMain' })}>{i18n.t('settings.ai_custom_url')}</label>
+                  <Input 
+                    type="text" 
+                    value={aiCustomUrl} 
+                    onChange={e => setAiCustomUrl(e.target.value)} 
+                    placeholder="http://localhost:11434/v1/chat/completions"
+                  />
+                </div>
+              )}
+
+              {/* System Prompt Template */}
+              <div className={stack({ gap: '1.5' })}>
+                <label className={css({ fontSize: 'sm', fontWeight: '600', color: 'textMain' })}>{i18n.t('settings.ai_prompt')}</label>
+                <Textarea 
+                  value={aiPrompt} 
+                  onChange={e => setAiPrompt(e.target.value)} 
+                  rows={6}
+                  className={css({ fontFamily: 'monospace', fontSize: 'xs' })}
+                />
+                <span className={css({ fontSize: '10px', color: 'textMuted' })}>
+                  Mesaj içeriğinin yerleştirileceği alana <strong>{"{text}"}</strong> değişkenini eklemeyi unutmayın.
+                </span>
+              </div>
+
+              {/* Action Buttons */}
+              <div className={flex({ justify: 'flex-end', borderTop: '1px solid token(colors.borderMain)', pt: '4', mt: '2' })}>
+                <Button type="submit" disabled={aiLoading}>
+                  <Save size={18} /> {i18n.t('settings.submit') || 'Save'}
+                </Button>
+              </div>
+            </form>
           </Card>
         )}
       </div>

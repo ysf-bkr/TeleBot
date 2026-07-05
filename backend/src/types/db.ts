@@ -7,6 +7,7 @@ export interface BotConfigTable {
   welcome_enabled: number; // 0/1
   parse_mode: string;
   webhook_domain: string | null;
+  settings: string | null;
   created_at: string;
   updated_at: string;
 }

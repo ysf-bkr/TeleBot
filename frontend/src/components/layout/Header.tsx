@@ -81,7 +81,7 @@ export function Header({ user, onLogout, onToggleMenu, isMenuOpen, theme, onTogg
             display: 'flex', alignItems: 'center', justifyContent: 'center',
             cursor: 'pointer',
           })}
-          title={theme === 'dark' ? 'Aydınlık Mod' : 'Karanlık Mod'}
+          title={theme === 'dark' ? i18n.t('header.light_mode') : i18n.t('header.dark_mode')}
         >
           {theme === 'dark' ? <Sun size={18} /> : <Moon size={18} />}
         </button>
@@ -98,7 +98,7 @@ export function Header({ user, onLogout, onToggleMenu, isMenuOpen, theme, onTogg
           })}
         >
           <LogOut size={16} />
-          <span className={css({ display: { base: 'none', sm: 'inline' } })}>Çıkış</span>
+          <span className={css({ display: { base: 'none', sm: 'inline' } })}>{i18n.t('header.logout')}</span>
         </button>
       </div>
     </header>

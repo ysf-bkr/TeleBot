@@ -17,6 +17,13 @@ export function Card({ children, className, ...props }: CardProps) {
         borderColor: 'borderMain',
         p: '6',
         color: 'textMain',
+        boxShadow: 'sm',
+        transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+        _hover: {
+          transform: 'translateY(-2px)',
+          boxShadow: '0 12px 24px -10px rgba(239, 68, 68, 0.12), 0 4px 12px -5px rgba(0, 0, 0, 0.05)',
+          borderColor: 'rgba(239, 68, 68, 0.2)',
+        }
       }), className)} 
       {...props}
     >

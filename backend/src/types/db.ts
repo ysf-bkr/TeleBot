@@ -21,6 +21,8 @@ export interface ChatTable {
   welcome_message: string | null;
   member_count: number;
   last_activity_at: string | null;
+  description: string | null;
+  invite_link: string | null;
   joined_at: string;
   updated_at: string;
 }
@@ -161,6 +163,52 @@ export interface CustomCommandTable {
   created_at: string;
 }
 
+export interface AutoReplyTable {
+  id: Generated<number>;
+  chat_id: string;
+  trigger: string;
+  response: string;
+  match_type: Generated<string>;
+  is_active: Generated<number>;
+  created_at: string;
+}
+
+export interface ChatTemplateTable {
+  id: Generated<number>;
+  name: string;
+  settings: string;
+  created_at: string;
+}
+
+export interface ChatAdminTable {
+  id: Generated<number>;
+  chat_id: string;
+  user_id: string;
+  username: string | null;
+  first_name: string | null;
+  is_creator: Generated<number> | null;
+  created_at: string;
+}
+
+export interface DeletedMessageTable {
+  id: Generated<number>;
+  chat_id: string;
+  user_id: string | null;
+  username: string | null;
+  message_text: string | null;
+  deleted_at: string;
+}
+
+export interface EditedMessageTable {
+  id: Generated<number>;
+  chat_id: string;
+  user_id: string | null;
+  username: string | null;
+  old_text: string | null;
+  new_text: string | null;
+  edited_at: string;
+}
+
 export interface Database {
   bot_config: BotConfigTable;
   chats: ChatTable;
@@ -177,6 +225,11 @@ export interface Database {
   captcha_sessions: CaptchaSessionTable;
   articles: ArticleTable;
   custom_commands: CustomCommandTable;
+  auto_replies: AutoReplyTable;
+  chat_templates: ChatTemplateTable;
+  chat_admins: ChatAdminTable;
+  deleted_messages: DeletedMessageTable;
+  edited_messages: EditedMessageTable;
 }
 
 // Select/Insert/Update helpers

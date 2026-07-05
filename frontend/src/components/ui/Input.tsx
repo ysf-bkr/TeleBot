@@ -21,7 +21,7 @@ export function Input({ className, ...props }: InputProps) {
         fontSize: 'sm',
         transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
         _hover: { borderColor: 'token(colors.gray.300)', _dark: { borderColor: 'token(colors.gray.700)' } },
-        _focus: { borderColor: 'primary', boxShadow: '0 0 0 3px rgba(99, 102, 241, 0.18)', outline: 'none' },
+        _focus: { borderColor: 'primary', boxShadow: '0 0 0 3px rgba(239, 68, 68, 0.18)', outline: 'none' },
         _disabled: { bg: 'bgCanvas', cursor: 'not-allowed', opacity: 0.7 },
       }), className)}
       {...props}
@@ -52,7 +52,7 @@ export function Textarea({ className, ...props }: TextareaProps) {
         resize: 'vertical',
         transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
         _hover: { borderColor: 'token(colors.gray.300)', _dark: { borderColor: 'token(colors.gray.700)' } },
-        _focus: { borderColor: 'primary', boxShadow: '0 0 0 3px rgba(99, 102, 241, 0.18)', outline: 'none' },
+        _focus: { borderColor: 'primary', boxShadow: '0 0 0 3px rgba(239, 68, 68, 0.18)', outline: 'none' },
         _disabled: { bg: 'bgCanvas', cursor: 'not-allowed', opacity: 0.7 },
       }), className)}
       {...props}

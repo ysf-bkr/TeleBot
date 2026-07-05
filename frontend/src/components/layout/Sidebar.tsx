@@ -2,41 +2,42 @@ import { Activity, Ban, BarChart, Calendar, ClipboardList, CreditCard, FileText,
 import { NavLink } from 'react-router-dom';
 import { css } from '../../../styled-system/css';
 import { stack } from '../../../styled-system/patterns';
+import { i18n } from '../../lib/i18n';
 
 const navGroups = [
   {
-    title: 'Ana Yönetim',
+    titleKey: 'nav.main_mgmt',
     items: [
-      { to: '/dashboard', label: 'Gösterge Paneli', icon: Activity },
-      { to: '/settings', label: 'Sistem Ayarları', icon: Settings },
+      { to: '/dashboard', labelKey: 'nav.dashboard', icon: Activity },
+      { to: '/settings', labelKey: 'nav.settings', icon: Settings },
     ]
   },
   {
-    title: 'Topluluk & Chat',
+    titleKey: 'nav.community_chat',
     items: [
-      { to: '/chats', label: 'Telegram Grupları', icon: Users },
-      { to: '/moderation', label: 'Gelişmiş Moderasyon', icon: Shield },
-      { to: '/scheduler', label: 'Mesaj Planlayıcı', icon: Calendar },
-      { to: '/articles', label: 'Sayfalar', icon: FileText },
-      { to: '/commands', label: 'Özel Komutlar', icon: Terminal },
+      { to: '/chats', labelKey: 'nav.chats', icon: Users },
+      { to: '/moderation', labelKey: 'nav.moderation', icon: Shield },
+      { to: '/scheduler', labelKey: 'nav.scheduler', icon: Calendar },
+      { to: '/articles', labelKey: 'nav.articles', icon: FileText },
+      { to: '/commands', labelKey: 'nav.commands', icon: Terminal },
     ]
   },
   {
-    title: 'Raporlar & Analiz',
+    titleKey: 'nav.reports_analysis',
     items: [
-      { to: '/analytics', label: 'Grup Analitiği', icon: BarChart },
-      { to: '/logs', label: 'Canlı Aktivite', icon: MessageCircle },
-      { to: '/audit', label: 'Denetim Kayıtları', icon: ClipboardList },
-      { to: '/team', label: 'Yönetici Ekibi', icon: Users },
+      { to: '/analytics', labelKey: 'nav.analytics', icon: BarChart },
+      { to: '/logs', labelKey: 'nav.logs', icon: MessageCircle },
+      { to: '/audit', labelKey: 'nav.audit', icon: ClipboardList },
+      { to: '/team', labelKey: 'nav.team', icon: Users },
     ]
   },
   {
-    title: 'Sistem',
+    titleKey: 'nav.system',
     items: [
-      { to: '/global-blacklist', label: 'Global Kara Liste', icon: Ban },
-      { to: '/subscriptions', label: 'Abonelikler', icon: CreditCard },
-      { to: '/user-profile', label: 'Kullanıcı Profili', icon: Search },
-      { to: '/webhook-test', label: 'Webhook Test', icon: Globe },
+      { to: '/global-blacklist', labelKey: 'nav.global_blacklist', icon: Ban },
+      { to: '/subscriptions', labelKey: 'nav.subscriptions', icon: CreditCard },
+      { to: '/user-profile', labelKey: 'nav.user_profile', icon: Search },
+      { to: '/webhook-test', labelKey: 'nav.webhook_test', icon: Globe },
     ]
   }
 ];
@@ -79,7 +80,7 @@ export function Sidebar({ isOpen, onClose, user }: SidebarProps) {
               textTransform: 'uppercase',
               opacity: 0.8
             })}>
-              {group.title}
+              {i18n.t(group.titleKey)}
             </div>
 
             {group.items.map((item) => {
@@ -117,7 +118,7 @@ export function Sidebar({ isOpen, onClose, user }: SidebarProps) {
                   }
                 >
                   <Icon size={16} />
-                  {item.label}
+                  {i18n.t(item.labelKey)}
                 </NavLink>
               );
             })}
@@ -161,7 +162,7 @@ export function Sidebar({ isOpen, onClose, user }: SidebarProps) {
             overflow: 'hidden',
             textOverflow: 'ellipsis'
           })}>
-            {user?.username || 'Yönetici'}
+            {user?.username || i18n.t('sidebar.admin')}
           </span>
           <span className={css({
             fontSize: '9px',
@@ -172,7 +173,7 @@ export function Sidebar({ isOpen, onClose, user }: SidebarProps) {
             fontWeight: '600'
           })}>
             <span className={css({ w: '1.5', h: '1.5', borderRadius: 'full', bg: 'success', display: 'inline-block' })} />
-            Çevrimiçi
+            {i18n.t('sidebar.online')}
           </span>
         </div>
       </div>

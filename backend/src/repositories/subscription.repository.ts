@@ -1,4 +1,5 @@
 import { getDb } from '../db/index.js';
+import type { Subscription } from '../types/db.js';
 
 interface SubscriptionData {
   user_id: string;
@@ -9,10 +10,6 @@ interface SubscriptionData {
   stripe_id?: string | null;
   telegram_payment_charge_id?: string | null;
   created_at?: string;
-}
-
-interface Subscription extends SubscriptionData {
-  id: number;
 }
 
 class SubscriptionRepository {

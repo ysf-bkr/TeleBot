@@ -6,7 +6,7 @@
 ![TypeScript](https://img.shields.io/badge/TypeScript-5.9-blue)
 ![Fastify](https://img.shields.io/badge/Fastify-5-lightgrey)
 ![React](https://img.shields.io/badge/React-19-61DAFB)
-![License](https://img.shields.io/badge/license-MIT-green)
+![License](https://img.shields.io/badge/license-AGPL--3.0-orange)
 
 ---
 
@@ -94,8 +94,8 @@
 
 ```bash
 # Repoyu klonla
-git clone https://github.com/kullanici/telegram-bot-panel.git
-cd telegram-bot-panel
+git clone https://github.com/ysf-bkr/TeleBot.git
+cd TeleBot
 
 # Bağımlılıkları yükle
 npm run install:all
@@ -124,6 +124,13 @@ npm run dev
 | `PORT` | Sunucu portu | `3000` |
 | `CORS_ORIGIN` | CORS izin verilen origin | `*` |
 | `LOG_LEVEL` | Log seviyesi | `info` |
+
+> ⚠️ **GÜVENLİK UYARISI (SECURITY WARNING):**
+> 
+> Üretim (Production) ortamında varsayılan `ADMIN_EMAIL`, `ADMIN_PASSWORD` ve `JWT_SECRET` değerlerini bırakmak kritik bir güvenlik açığıdır.
+> - **JWT_SECRET:** Üretim modunda (`NODE_ENV=production`) varsayılan/fallback değerlerin (`dev_fallback`, `admin`, `change_me` vb.) kullanılması engellenmiştir; sunucu başlatılırken fatal hata fırlatarak durur (fail-fast). Lütfen üretim ortamına benzersiz bir secret girin.
+> - **ADMIN Giriş Bilgileri:** İlk kurulumdan sonra sisteme girip **Yönetici Ekibi** sayfasından varsayılan şifreyi (`admin123`) derhal değiştirin!
+> - **7 Günlük TRIAL (Deneme Sürümü) Modu:** Eğer sunucuda `LICENSE_KEY` değeri girilmezse (veya kurulum sihirbazında boş bırakılırsa), platform otomatik olarak **7 günlük ücretsiz deneme modunda** çalışacaktır. 7 günün sonunda gelişmiş yönetim özellikleri kilitlenir ve lisans anahtarı girilmesi istenir. Arka plandaki botların çalışması ise kesintiye uğramaz.
 
 ---
 
@@ -331,14 +338,14 @@ docker run -p 3000:3000 \
 
 ## 📄 Lisans
 
-MIT License - Detaylar için [LICENSE](LICENSE) dosyasına bakın.
+AGPL-3.0 License - Detaylar için [LICENSE](LICENSE) dosyasına bakın.
 
 ---
 
 ## 📞 İletişim
 
-- GitHub: [github.com/kullanici/telegram-bot-panel](https://github.com/kullanici/telegram-bot-panel)
-- Telegram: [@username](https://t.me/username)
+- GitHub: [github.com/ysf-bkr/TeleBot](https://github.com/ysf-bkr/TeleBot)
+- Telegram: [@ysfbkr](https://t.me/ysfbkr)
 
 ---
 

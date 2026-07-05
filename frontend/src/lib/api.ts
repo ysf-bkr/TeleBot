@@ -44,6 +44,10 @@ api.interceptors.response.use(
       window.dispatchEvent(new Event('auth_logout'));
       // Let the app handle logout via App state
       toast.error('Oturum süresi doldu. Lütfen tekrar giriş yapın.');
+    } else if (status === 403 && (error.response?.data as any)?.error === 'License Blocked') {
+      const msg = (error.response?.data as any)?.message || 'Lisans doğrulaması başarısız oldu!';
+      window.dispatchEvent(new CustomEvent('license_blocked', { detail: msg }));
+      toast.error(msg);
     } else if (status && status >= 500) {
       toast.error('Sunucu hatası. Lütfen daha sonra tekrar deneyin.');
     } else {
@@ -70,6 +74,8 @@ export const auth = {
   loginEmail: (data: any) => api.post<{ token: string; user: User }>('/auth/login-email', data),
   registerEmail: (data: any) => api.post<{ token: string; user: User }>('/auth/register', data),
   config: () => api.get<{ botUsername?: string }>('/auth/config'),
+  forgotPassword: (email: string) => api.post('/auth/forgot-password', { email }),
+  resetPassword: (data: any) => api.post('/auth/reset-password', data),
 };
 
 export const settings = {

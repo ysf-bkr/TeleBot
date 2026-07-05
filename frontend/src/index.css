@@ -2,11 +2,17 @@
 
 @layer reset, base, tokens, recipes, utilities;
 
+html {
+  scroll-behavior: smooth;
+}
+
 body {
   font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   color: token(colors.textMain);
   background-color: token(colors.bgCanvas);
-  transition: background-color 0.3s ease, color 0.3s ease;
+  transition: background-color 0.3s cubic-bezier(0.4, 0, 0.2, 1), color 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
 /* Global full-screen friendly styles */
@@ -16,7 +22,7 @@ html, body, #root {
   padding: 0;
 }
 
-/* Custom premium scrollbar */
+/* Custom premium scrollbar - styled to match primary Crimson Red theme */
 ::-webkit-scrollbar {
   width: 6px;
   height: 6px;
@@ -25,9 +31,32 @@ html, body, #root {
   background: transparent;
 }
 ::-webkit-scrollbar-thumb {
-  background: rgba(99, 102, 241, 0.25);
+  background: rgba(239, 68, 68, 0.25);
   border-radius: 10px;
+  transition: background 0.2s ease;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(99, 102, 241, 0.45);
+  background: rgba(239, 68, 68, 0.45);
+}
+
+/* Text selection highlight matching the theme */
+::selection {
+  background-color: rgba(239, 68, 68, 0.15);
+  color: token(colors.primary);
+}
+
+/* Custom modern transition keyframes and classes */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.fade-in {
+  animation: fadeIn 0.3s cubic-bezier(0.4, 0, 0.2, 1) forwards;
 }

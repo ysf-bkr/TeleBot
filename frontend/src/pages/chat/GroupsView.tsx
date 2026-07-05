@@ -18,7 +18,6 @@ import { Input, Textarea } from '../../components/ui/Input';
 import { Modal } from '../../components/ui/Modal';
 import { PageHeader } from '../../components/ui/PageHeader';
 import { Spinner } from '../../components/ui/Spinner';
-
 import { BotStatus, Chat } from '../../types';
 
 const token = () => localStorage.getItem('token');

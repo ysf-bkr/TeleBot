@@ -3,14 +3,16 @@ import { Navigate, Route, Routes, useLocation, useNavigate } from 'react-router-
 import { io } from 'socket.io-client';
 import { Toaster, toast } from 'sonner';
 import { i18n } from './lib/i18n';
+import { ShieldAlert } from 'lucide-react';
 
 // Shared
 import { auth as authApi, chats as chatsApi, logs as logsApi, setAuthToken, settings as settingsApi } from './lib/api';
 import { BotStatus, Chat, Log, User } from './types';
 
-// Layout
 import { Header } from './components/layout/Header';
 import { Sidebar } from './components/layout/Sidebar';
+import { Card } from './components/ui/Card';
+import { Button } from './components/ui/Button';
 
 // Views
 import { AnalyticsView } from './pages/analytics/AnalyticsView';
@@ -34,6 +36,7 @@ import { SubscriptionsView } from './pages/payments/SubscriptionsView';
 import { SchedulerView } from './pages/scheduler/SchedulerView';
 import { SettingsView } from './pages/settings/SettingsView';
 import { TeamView } from './pages/team/TeamView';
+import SetupView from './pages/setup/SetupView';
 
 // Panda
 import { css } from '../styled-system/css';
@@ -55,6 +58,8 @@ function App() {
   const [webhookDomain, setWebhookDomain] = useState('');
   const [newToken, setNewToken] = useState('');
   const [socket, setSocket] = useState<any>(null);
+  const [isSetup, setIsSetup] = useState<boolean | null>(null);
+  const [licenseError, setLicenseError] = useState<string | null>(null);
   // i18n reaktivite için - dil değişince state güncellenir, tüm component'ler yeniden render olur
   const [, setLangVersion] = useState(0);
 
@@ -69,6 +74,27 @@ function App() {
     };
     window.addEventListener('auth_logout', handleAuthLogout);
     return () => window.removeEventListener('auth_logout', handleAuthLogout);
+  }, []);
+
+  // Fetch Setup status
+  useEffect(() => {
+    fetch('/api/setup/status')
+      .then(res => res.json())
+      .then(data => {
+        setIsSetup(data.configured);
+      })
+      .catch(() => {
+        setIsSetup(true); // default to true on failure so we don't block login
+      });
+  }, []);
+
+  // Listen for License Blocked events
+  useEffect(() => {
+    const handleLicenseBlocked = (e: any) => {
+      setLicenseError(e.detail || 'License verification failed.');
+    };
+    window.addEventListener('license_blocked', handleLicenseBlocked);
+    return () => window.removeEventListener('license_blocked', handleLicenseBlocked);
   }, []);
 
   useEffect(() => {
@@ -184,6 +210,13 @@ function App() {
 
   const navigate = useNavigate();
   const location = useLocation();
+
+  useEffect(() => {
+    if (isSetup === false && location.pathname !== '/setup') {
+      navigate('/setup', { replace: true });
+    }
+  }, [isSetup, location.pathname, navigate]);
+
   useEffect(() => { setMobileMenuOpen(false); }, [location.pathname]);
   const goTo = (path: string) => { navigate(path); };
 
@@ -192,6 +225,40 @@ function App() {
   return (
     <>
       <Toaster theme={theme as any} richColors position="bottom-right" />
+      {licenseError && (
+        <div className={css({
+          position: 'fixed',
+          inset: 0,
+          zIndex: 9999,
+          bg: 'rgba(9, 13, 22, 0.85)',
+          backdropFilter: 'blur(8px)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          p: '4'
+        })}>
+          <Card className={css({ w: 'full', maxW: '500px', p: '8', textAlign: 'center' })}>
+            <div className={css({
+              w: '16', h: '16', borderRadius: 'full', bg: 'rgba(239, 68, 68, 0.15)',
+              color: 'primary', display: 'flex', alignItems: 'center', justifyContent: 'center',
+              mx: 'auto', mb: '4'
+            })}>
+              <ShieldAlert size={32} />
+            </div>
+            <h2 className={css({ fontSize: 'xl', fontWeight: '800', color: 'textMain', mb: '2' })}>
+              Lisans Aktivasyonu Gerekli
+            </h2>
+            <p className={css({ fontSize: 'sm', color: 'textMuted', mb: '6' })}>
+              {licenseError}
+            </p>
+            <div className={css({ display: 'flex', gap: '3', justifyContent: 'center' })}>
+              <Button onClick={() => { setLicenseError(null); navigate('/setup'); }} className={css({ fontWeight: '700' })}>
+                Lisans Değiştir / Kurulum
+              </Button>
+            </div>
+          </Card>
+        </div>
+      )}
       <Routes>
         <Route path="/" element={
           isLoggedIn ? (
@@ -200,6 +267,7 @@ function App() {
         } />
         <Route path="/login" element={isLoggedIn ? <Navigate to="/" replace /> : <LoginView onLogin={handleLogin} />} />
         <Route path="/forgot-password" element={<ForgotPasswordView />} />
+        <Route path="/setup" element={<SetupView />} />
         <Route path="/onboarding" element={!isLoggedIn ? <Navigate to="/login" replace /> : <OnboardingView />} />
         <Route path="/404" element={<NotFoundView />} />
 

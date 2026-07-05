@@ -16,9 +16,21 @@ async function startServer() {
   await initializeDatabase();
 
   // Register plugins
-  await fastify.register((await import('@fastify/helmet')).default);
+  await fastify.register((await import('@fastify/helmet')).default, {
+    contentSecurityPolicy: false // Disable CSP so Swagger UI can render stylesheets
+  });
   await fastify.register((await import('@fastify/cors')).default, {
     origin: process.env.CORS_ORIGIN || '*',
+  });
+
+  // Swagger Documentation for script distribution
+  await fastify.register(import('@fastify/swagger'));
+  await fastify.register(import('@fastify/swagger-ui'), {
+    routePrefix: '/docs',
+    uiConfig: {
+      docExpansion: 'list',
+      deepLinking: false
+    }
   });
 
   // Socket.io
@@ -30,6 +42,12 @@ async function startServer() {
 
   fastify.addHook('onRequest', async (request: any) => {
     request.io = io;
+  });
+
+  // License Validation hook for commercial distribution
+  const { validateLicense } = await import('./middleware/license.js');
+  fastify.addHook('onRequest', async (request, reply) => {
+    await validateLicense(request, reply);
   });
 
   // === AUTH PLUGIN (Fastify native + JWT) ===
@@ -78,6 +96,10 @@ async function startServer() {
   await fastify.register(commandsRouters, { prefix: '/api/commands' });
   await fastify.register(paymentsRouters, { prefix: '/api/payments' });
 
+  // Setup Wizard Router
+  const { default: setupRouters } = await import('./modules/setup/setup.routers.js');
+  await fastify.register(setupRouters, { prefix: '/api/setup' });
+
   // Public article page
   const { default: articlesController } = await import('./modules/articles/articles.controller.js');
   fastify.get('/p/:slug', articlesController.renderArticle);
@@ -98,6 +120,14 @@ async function startServer() {
   // Seed + bots
   const { default: authService } = await import('./modules/auth/auth.service.js');
   await authService.ensureDefaultAdmin();
+
+  // Initialize license server heartbeat verification
+  const { default: licenseService } = await import('./services/license.service.js');
+  await licenseService.verifyHeartbeat();
+  // Check heartbeat every 24 hours
+  setInterval(async () => {
+    await licenseService.verifyHeartbeat();
+  }, 24 * 60 * 60 * 1000);
 
   const { default: botService } = await import('./services/bot.service.js');
   await botService.startAllBots(io as any);

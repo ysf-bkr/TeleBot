@@ -1,12 +1,12 @@
 import { FastifyReply, FastifyRequest } from 'fastify';
 import chatService from './chat.service.js';
 
-async function listChats(_request: FastifyRequest, _reply: FastifyReply) {
-  return chatService.getAllChats();
+async function listChats(request: FastifyRequest, _reply: FastifyReply) {
+  return chatService.getAllChats(request.workspace_id);
 }
 
 async function getChat(request: FastifyRequest<{ Params: { chatId: string } }>, reply: FastifyReply) {
-  const chat = await chatService.getChat(request.params.chatId);
+  const chat = await chatService.getChat(request.params.chatId, request.workspace_id);
   if (!chat) {
     reply.code(404);
     return { error: 'Grup bulunamadı' };
@@ -16,7 +16,7 @@ async function getChat(request: FastifyRequest<{ Params: { chatId: string } }>, 
 
 async function toggleChat(request: FastifyRequest<{ Params: { chatId: string }; Body: { isEnabled: boolean } }>, reply: FastifyReply) {
   try {
-    await chatService.toggleChat(request.params.chatId, request.body.isEnabled);
+    await chatService.toggleChat(request.params.chatId, request.body.isEnabled, request.workspace_id);
     return { success: true };
   } catch (err: any) {
     reply.code(400);
@@ -26,7 +26,7 @@ async function toggleChat(request: FastifyRequest<{ Params: { chatId: string }; 
 
 async function updateChat(request: FastifyRequest<{ Params: { chatId: string }; Body: any }>, reply: FastifyReply) {
   try {
-    await chatService.updateChatSettings(request.params.chatId, request.body as any);
+    await chatService.updateChatSettings(request.params.chatId, request.body as any, request.workspace_id);
     return { success: true };
   } catch (err: any) {
     reply.code(400);
@@ -88,7 +88,6 @@ async function userAction(request: FastifyRequest<{ Params: { chatId: string }; 
   }
 }
 
-// Grup bilgilerini Telegram'dan çek
 async function syncChatInfo(request: FastifyRequest<{ Params: { chatId: string } }>, reply: FastifyReply) {
   try {
     const botServiceMod = await import('../../services/bot.service.js');
@@ -99,18 +98,15 @@ async function syncChatInfo(request: FastifyRequest<{ Params: { chatId: string }
     }
 
     const chatId = request.params.chatId;
-    // Telegram'dan chat bilgilerini al
     const chatInfo: any = await bot.telegram.getChat(chatId);
 
-    // DB'yi güncelle
     await chatService.saveChatFromBot({
       chatId: chatInfo.id,
       title: chatInfo.title || chatInfo.first_name || 'Bilinmeyen',
       type: chatInfo.type,
       username: (chatInfo as any).username || undefined,
-    });
+    }, request.workspace_id);
 
-    // DB'de description ve updated_at güncelle
     try {
       const { getDb } = await import('../../db/index.js');
       const db = getDb();
@@ -120,10 +116,9 @@ async function syncChatInfo(request: FastifyRequest<{ Params: { chatId: string }
         .execute();
     } catch (_) {}
 
-    // Üye sayısını güncelle
     try {
       const count = await bot.telegram.getChatMembersCount(chatId);
-      await chatService.updateMemberCount(chatId, count);
+      await chatService.updateMemberCount(chatId, count, request.workspace_id);
     } catch (_) {}
 
     return {
@@ -146,7 +141,6 @@ async function syncChatInfo(request: FastifyRequest<{ Params: { chatId: string }
   }
 }
 
-// Grup adını ve açıklamasını güncelle
 async function updateChatProfile(request: FastifyRequest<{ Params: { chatId: string }; Body: { title?: string; description?: string } }>, reply: FastifyReply) {
   try {
     const botServiceMod = await import('../../services/bot.service.js');
@@ -173,7 +167,6 @@ async function updateChatProfile(request: FastifyRequest<{ Params: { chatId: str
   }
 }
 
-// Grup fotoğrafını güncelle (base64 veya URL)
 async function updateChatPhoto(request: FastifyRequest<{ Params: { chatId: string }; Body: { photoUrl?: string } }>, reply: FastifyReply) {
   try {
     const botServiceMod = await import('../../services/bot.service.js');
@@ -187,7 +180,6 @@ async function updateChatPhoto(request: FastifyRequest<{ Params: { chatId: strin
     const { photoUrl } = request.body;
 
     if (photoUrl) {
-      // URL'den fotoğraf indir ve Telegram'a yükle
       const response = await fetch(photoUrl);
       const buffer = Buffer.from(await response.arrayBuffer());
       await bot.telegram.setChatPhoto(chatId, { source: buffer });
@@ -200,7 +192,6 @@ async function updateChatPhoto(request: FastifyRequest<{ Params: { chatId: strin
   }
 }
 
-// Grup mesajını gönder (test için)
 async function sendTestMessage(request: FastifyRequest<{ Params: { chatId: string }; Body: { text: string; parseMode?: string } }>, reply: FastifyReply) {
   try {
     const botServiceMod = await import('../../services/bot.service.js');

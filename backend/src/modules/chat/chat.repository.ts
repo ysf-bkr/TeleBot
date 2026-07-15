@@ -16,19 +16,27 @@ interface ChatUpdatePayload {
 }
 
 class ChatRepository {
-  async getAllChats(): Promise<Chat[]> {
+  async getAllChats(workspaceId?: number): Promise<Chat[]> {
     const db = getDb();
-    return db.selectFrom('chats').selectAll().orderBy('joined_at', 'desc').execute();
+    let query = db.selectFrom('chats').selectAll().orderBy('joined_at', 'desc');
+    if (workspaceId) {
+      query = query.where('workspace_id', '=', workspaceId) as any;
+    }
+    return query.execute() as Promise<Chat[]>;
   }
 
-  async getChatByChatId(chatId: string | number): Promise<Chat | undefined> {
+  async getChatByChatId(chatId: string | number, workspaceId?: number): Promise<Chat | undefined> {
     const db = getDb();
-    return db.selectFrom('chats').selectAll().where('chat_id', '=', String(chatId)).executeTakeFirst();
+    let query = db.selectFrom('chats').selectAll().where('chat_id', '=', String(chatId));
+    if (workspaceId) {
+      query = query.where('workspace_id', '=', workspaceId) as any;
+    }
+    return query.executeTakeFirst() as Promise<Chat | undefined>;
   }
 
-  async upsertChat(chatData: ChatInput): Promise<Chat | undefined> {
+  async upsertChat(chatData: ChatInput, workspaceId?: number): Promise<Chat | undefined> {
     const db = getDb();
-    const existing = await this.getChatByChatId(chatData.chatId);
+    const existing = await this.getChatByChatId(chatData.chatId, workspaceId);
     if (existing) {
       await db.updateTable('chats')
         .set({
@@ -39,11 +47,12 @@ class ChatRepository {
         })
         .where('chat_id', '=', String(chatData.chatId))
         .execute();
-      return this.getChatByChatId(chatData.chatId);
+      return this.getChatByChatId(chatData.chatId, workspaceId);
     }
     const now = new Date().toISOString();
     await db.insertInto('chats')
       .values({
+        workspace_id: workspaceId || null,
         chat_id: String(chatData.chatId),
         title: chatData.title || null,
         type: chatData.type || null,
@@ -54,46 +63,61 @@ class ChatRepository {
         updated_at: now,
       })
       .execute();
-    return this.getChatByChatId(chatData.chatId);
+    return this.getChatByChatId(chatData.chatId, workspaceId);
   }
 
-  async updateChatEnabled(chatId: string | number, isEnabled: boolean): Promise<void> {
+  async updateChatEnabled(chatId: string | number, isEnabled: boolean, workspaceId?: number): Promise<void> {
     const db = getDb();
-    await db.updateTable('chats')
+    let query = db.updateTable('chats')
       .set({ is_enabled: isEnabled ? 1 : 0, updated_at: new Date().toISOString() })
-      .where('chat_id', '=', String(chatId))
-      .execute();
+      .where('chat_id', '=', String(chatId));
+    if (workspaceId) {
+      query = query.where('workspace_id', '=', workspaceId) as any;
+    }
+    await query.execute();
   }
 
-  async updateChatSettings(chatId: string | number, payload: ChatUpdatePayload): Promise<void> {
+  async updateChatSettings(chatId: string | number, payload: ChatUpdatePayload, workspaceId?: number): Promise<void> {
     const db = getDb();
-    await db.updateTable('chats')
+    let query = db.updateTable('chats')
       .set({ ...payload, updated_at: new Date().toISOString() })
-      .where('chat_id', '=', String(chatId))
-      .execute();
+      .where('chat_id', '=', String(chatId));
+    if (workspaceId) {
+      query = query.where('workspace_id', '=', workspaceId) as any;
+    }
+    await query.execute();
   }
 
-  async updateMemberCount(chatId: string | number, count: number): Promise<void> {
+  async updateMemberCount(chatId: string | number, count: number, workspaceId?: number): Promise<void> {
     const db = getDb();
-    await db.updateTable('chats')
+    let query = db.updateTable('chats')
       .set({ member_count: count, updated_at: new Date().toISOString() })
-      .where('chat_id', '=', String(chatId))
-      .execute();
+      .where('chat_id', '=', String(chatId));
+    if (workspaceId) {
+      query = query.where('workspace_id', '=', workspaceId) as any;
+    }
+    await query.execute();
   }
 
-  async updateLastActivity(chatId: string | number): Promise<void> {
+  async updateLastActivity(chatId: string | number, workspaceId?: number): Promise<void> {
     const db = getDb();
-    await db.updateTable('chats')
+    let query = db.updateTable('chats')
       .set({ last_activity_at: new Date().toISOString(), updated_at: new Date().toISOString() })
-      .where('chat_id', '=', String(chatId))
-      .execute();
+      .where('chat_id', '=', String(chatId));
+    if (workspaceId) {
+      query = query.where('workspace_id', '=', workspaceId) as any;
+    }
+    await query.execute();
   }
 
-  async removeChat(chatId: string | number): Promise<void> {
+  async removeChat(chatId: string | number, workspaceId?: number): Promise<void> {
     const db = getDb();
-    await db.deleteFrom('chats')
-      .where('chat_id', '=', String(chatId))
-      .execute();
+    let query = db.deleteFrom('chats')
+      .where('chat_id', '=', String(chatId));
+    if (workspaceId) {
+      query = query.where('workspace_id', '=', workspaceId) as any;
+    }
+    await query.execute();
   }
 }
 

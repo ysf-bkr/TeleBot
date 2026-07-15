@@ -14,6 +14,7 @@ interface CreateLogData {
 interface GetLogsOptions {
   chatId?: string | number;
   limit?: number;
+  workspaceId?: number;
 }
 
 class ModerationLogRepository {
@@ -45,12 +46,15 @@ class ModerationLogRepository {
     return db.selectFrom('moderation_logs').selectAll().where('id', '=', id).executeTakeFirst();
   }
 
-  async getLogs({ chatId, limit = 50 }: GetLogsOptions = {}): Promise<ModerationLog[]> {
+  async getLogs({ chatId, limit = 50, workspaceId }: GetLogsOptions = {}): Promise<ModerationLog[]> {
     const db = getDb();
-    let query = db.selectFrom('moderation_logs').selectAll();
+    let query = db.selectFrom('moderation_logs').selectAll() as any;
 
     if (chatId) {
       query = query.where('chat_id', '=', String(chatId));
+    }
+    if (workspaceId) {
+      query = query.where('workspace_id', '=', workspaceId);
     }
 
     return query.orderBy('timestamp', 'desc').limit(Number(limit)).execute();

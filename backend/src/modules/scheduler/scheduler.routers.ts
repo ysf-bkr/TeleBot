@@ -1,14 +1,23 @@
 import { FastifyInstance } from 'fastify';
-import schedulerService from './scheduler.service.js';
 import { getDb } from '../../db/index.js';
+import { hasFeature } from '../../middleware/planLimits.js';
+import schedulerService from './scheduler.service.js';
 
 async function schedulerRouters(fastify: FastifyInstance): Promise<void> {
   // GET /api/scheduler
   fastify.get('/', async (request: any, reply: any) => {
     try {
-      const posts = await schedulerService.getPosts();
-      
-      const mapped = posts.map(p => ({
+      // Plan feature check
+      if (request.workspace_id) {
+        const hasScheduler = await hasFeature(request.workspace_id, 'scheduler');
+        if (!hasScheduler) {
+          reply.code(403);
+          return { error: 'Plan Limit Aşıldı', message: 'Zamanlanmış mesaj özelliği Pro ve Enterprise planlarında mevcuttur.' };
+        }
+      }
+
+      const posts = await schedulerService.getPosts(request.workspace_id);
+      const mapped = posts.map((p: any) => ({
         id: p.id,
         chat_id: p.chat_id,
         chatId: p.chat_id,
@@ -21,7 +30,6 @@ async function schedulerRouters(fastify: FastifyInstance): Promise<void> {
         messageId: p.message_id,
         created_at: p.created_at,
       }));
-      
       return mapped;
     } catch (err: any) {
       reply.code(500);
@@ -31,6 +39,15 @@ async function schedulerRouters(fastify: FastifyInstance): Promise<void> {
 
   // POST /api/scheduler
   fastify.post('/', async (request: any, reply: any) => {
+    // Plan feature check
+    if (request.workspace_id) {
+      const hasScheduler = await hasFeature(request.workspace_id, 'scheduler');
+      if (!hasScheduler) {
+        reply.code(403);
+        return { error: 'Plan Limit Aşıldı', message: 'Zamanlanmış mesaj özelliği Pro ve Enterprise planlarında mevcuttur.' };
+      }
+    }
+
     const { chatId, content, scheduledAt, parseMode, autoDeleteAfter, buttons } = request.body || {};
     if (!chatId || !content || !scheduledAt) {
       reply.code(400);
@@ -45,7 +62,7 @@ async function schedulerRouters(fastify: FastifyInstance): Promise<void> {
         parseMode,
         autoDeleteAfter: autoDeleteAfter ? Number(autoDeleteAfter) : null,
         buttons,
-      });
+      }, request.workspace_id);
       return { success: true };
     } catch (err: any) {
       reply.code(500);
@@ -58,9 +75,11 @@ async function schedulerRouters(fastify: FastifyInstance): Promise<void> {
     const { id } = request.params;
     const db = getDb();
     try {
-      await db.deleteFrom('scheduled_posts')
-        .where('id', '=', Number(id))
-        .execute();
+      let query = db.deleteFrom('scheduled_posts').where('id', '=', Number(id)) as any;
+      if (request.workspace_id) {
+        query = query.where('workspace_id', '=', request.workspace_id);
+      }
+      await query.execute();
       return { success: true };
     } catch (err: any) {
       reply.code(500);

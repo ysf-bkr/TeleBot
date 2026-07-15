@@ -1,4 +1,4 @@
-import { Activity, Ban, BarChart, Calendar, ClipboardList, CreditCard, FileText, Globe, MessageCircle, Search, Settings, Shield, Terminal, Users } from 'lucide-react';
+import { Activity, Ban, BarChart, Building2, Calendar, ClipboardList, CreditCard, FileText, Globe, MessageCircle, Search, Settings, Shield, Terminal, Users } from 'lucide-react';
 import { NavLink } from 'react-router-dom';
 import { css } from '../../../styled-system/css';
 import { stack } from '../../../styled-system/patterns';
@@ -9,6 +9,7 @@ const navGroups = [
     titleKey: 'nav.main_mgmt',
     items: [
       { to: '/dashboard', labelKey: 'nav.dashboard', icon: Activity },
+      { to: '/workspace', labelKey: 'nav.workspace', icon: Building2 },
       { to: '/settings', labelKey: 'nav.settings', icon: Settings },
     ]
   },

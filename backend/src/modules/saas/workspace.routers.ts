@@ -1,15 +1,16 @@
 import { FastifyInstance } from 'fastify';
 import {
-    createWorkspace,
-    deleteWorkspace,
-    getAdminStats,
-    getDashboardStats,
-    getMyWorkspace,
-    getWorkspace,
-    listPlans,
-    listWorkspaces,
-    updateMyWorkspace,
-    updateWorkspace,
+  createWorkspace,
+  deleteWorkspace,
+  getAdminStats,
+  getDashboardStats,
+  getMyWorkspace,
+  getWorkspace,
+  listPlans,
+  listWorkspaces,
+  updateMyWorkspace,
+  updateWorkspace,
+  upgradePlan,
 } from './workspace.controller.js';
 
 async function workspaceRouters(fastify: FastifyInstance): Promise<void> {
@@ -30,6 +31,9 @@ async function workspaceRouters(fastify: FastifyInstance): Promise<void> {
   // Mevcut workspace detayları
   fastify.get('/workspace', getMyWorkspace);
   fastify.patch('/workspace', updateMyWorkspace);
+
+  // Plan yükseltme/düşürme
+  fastify.post('/workspace/upgrade', upgradePlan);
 
   // Dashboard istatistikleri
   fastify.get('/workspace/stats', getDashboardStats);

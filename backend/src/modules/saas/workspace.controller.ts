@@ -221,6 +221,55 @@ export async function getDashboardStats(request: FastifyRequest, reply: FastifyR
   }
 }
 
+// ===== PLAN YÜKSELTME / DÜŞÜRME =====
+
+export async function upgradePlan(request: FastifyRequest, reply: FastifyReply) {
+  const workspaceId = request.workspace_id;
+  const { planSlug } = request.body as any;
+
+  if (!workspaceId) {
+    reply.code(400);
+    return { error: 'Workspace bulunamadı' };
+  }
+  if (!planSlug) {
+    reply.code(400);
+    return { error: 'Plan slug gereklidir' };
+  }
+
+  try {
+    const plan = await planRepository.findBySlug(planSlug);
+    if (!plan) {
+      reply.code(404);
+      return { error: 'Plan bulunamadı' };
+    }
+
+    // Workspace plan'ını güncelle
+    await workspaceRepository.update(workspaceId, {
+      plan_id: plan.id,
+      status: 'active',
+    });
+
+    // Aboneliği güncelle/oluştur
+    const expiresAt = planSlug === 'free'
+      ? null
+      : new Date(Date.now() + 30 * 86400000).toISOString();
+
+    await subscriptionRepository.upsert({
+      user_id: String((request as any).user?.id || ''),
+      workspace_id: workspaceId,
+      plan_slug: planSlug,
+      plan_id: plan.id,
+      status: 'active',
+      expires_at: expiresAt,
+    });
+
+    return { success: true, message: `Plan "${plan.name}" olarak güncellendi.` };
+  } catch (err: any) {
+    reply.code(500);
+    return { error: err.message };
+  }
+}
+
 // ===== SUPER ADMIN: Platform istatistikleri =====
 
 export async function getAdminStats(request: FastifyRequest, reply: FastifyReply) {

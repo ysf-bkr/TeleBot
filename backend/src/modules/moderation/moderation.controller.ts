@@ -4,7 +4,7 @@ import moderationService from './moderation.service.js';
 
 async function getSettings(request: FastifyRequest<{ Params: { chatId: string } }>, reply: FastifyReply) {
   try {
-    const settings = await moderationService.getOrCreateSettings(request.params.chatId);
+    const settings = await moderationService.getOrCreateSettings(request.params.chatId, request.workspace_id);
     const blacklist = await moderationService.getBlacklistWords(request.params.chatId);
     return { settings, blacklist };
   } catch (err: any) {

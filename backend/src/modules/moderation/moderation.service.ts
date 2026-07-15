@@ -1,16 +1,16 @@
+import { getDb } from '../../db/index.js';
 import blacklistRepo from '../../repositories/blacklist.repository.js';
 import globalBlacklist from '../../repositories/globalBlacklist.repository.js';
 import moderationLogRepo from '../../repositories/moderationLog.repository.js';
 import moderationRepo from './moderation.repository.js';
-import { getDb } from '../../db/index.js';
 
 class ModerationService {
-  async getOrCreateSettings(chatId: string | number): Promise<any> {
-    return moderationRepo.getSettings(chatId);
+  async getOrCreateSettings(chatId: string | number, workspaceId?: number): Promise<any> {
+    return moderationRepo.getSettings(chatId, workspaceId);
   }
 
-  async updateSettings(chatId: string | number, data: Record<string, any>): Promise<void> {
-    return moderationRepo.updateSettings(chatId, data);
+  async updateSettings(chatId: string | number, data: Record<string, any>, workspaceId?: number): Promise<void> {
+    return moderationRepo.updateSettings(chatId, data, workspaceId);
   }
 
   async getBlacklistWords(_chatId: string | number): Promise<any[]> {
@@ -63,27 +63,21 @@ Analiz edilecek mesaj: "{text}"`;
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             contents: [{
-              parts: [{
-                text: formattedPrompt
-              }]
+              parts: [{ text: formattedPrompt }]
             }]
           })
         });
 
         const data = await response.json() as any;
         responseText = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
-      } 
+      }
       else if (aiProvider === 'openai' || aiProvider === 'deepseek' || aiProvider === 'local') {
         let url = 'https://api.openai.com/v1/chat/completions';
         if (aiProvider === 'deepseek') url = 'https://api.deepseek.com/chat/completions';
         if (aiProvider === 'local' && customUrl) url = customUrl;
 
-        const headers: Record<string, string> = {
-          'Content-Type': 'application/json'
-        };
-        if (apiKey) {
-          headers['Authorization'] = `Bearer ${apiKey}`;
-        }
+        const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+        if (apiKey) headers['Authorization'] = `Bearer ${apiKey}`;
 
         const response = await fetch(url, {
           method: 'POST',
@@ -98,21 +92,13 @@ Analiz edilecek mesaj: "{text}"`;
 
         const data = await response.json() as any;
         responseText = data.choices?.[0]?.message?.content || '';
-      } 
+      }
       else if (aiProvider === 'claude') {
         const url = 'https://api.anthropic.com/v1/messages';
         const response = await fetch(url, {
           method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'x-api-key': apiKey,
-            'anthropic-version': '2023-06-01'
-          },
-          body: JSON.stringify({
-            model: aiModel,
-            max_tokens: 1024,
-            messages: [{ role: 'user', content: formattedPrompt }]
-          })
+          headers: { 'Content-Type': 'application/json', 'x-api-key': apiKey, 'anthropic-version': '2023-06-01' },
+          body: JSON.stringify({ model: aiModel, max_tokens: 1024, messages: [{ role: 'user', content: formattedPrompt }] })
         });
 
         const data = await response.json() as any;
@@ -159,15 +145,14 @@ Analiz edilecek mesaj: "{text}"`;
       }
     }
 
-    // Yapay Zeka Destekli Moderasyon (Gemini / OpenAI / Claude)
     if (settings.ai_moderation_enabled && text.trim().length > 3) {
       const aiResult = await this.checkWithAi(text);
       if (aiResult && aiResult.violated) {
-        return { 
-          violated: true, 
-          reason: `Yapay Zeka: ${aiResult.reason || 'Kural İhlali'}`, 
-          action: aiResult.action === 'none' ? 'delete' : (aiResult.action || 'delete'), 
-          delete: true 
+        return {
+          violated: true,
+          reason: `Yapay Zeka: ${aiResult.reason || 'Kural İhlali'}`,
+          action: aiResult.action === 'none' ? 'delete' : (aiResult.action || 'delete'),
+          delete: true
         };
       }
     }
@@ -179,35 +164,30 @@ Analiz edilecek mesaj: "{text}"`;
     return moderationLogRepo.createLog(data);
   }
 
-  async getLogs(chatId: string | number, limit = 30): Promise<any[]> {
-    return moderationLogRepo.getLogs({ chatId, limit });
+  async getLogs(chatId: string | number, limit = 30, workspaceId?: number): Promise<any[]> {
+    return moderationLogRepo.getLogs({ chatId, limit, workspaceId });
   }
 
   async applyAction(ctx: any, action: string, reason: string, user: any, chatId: string | number): Promise<void> {
     const targetUser = user || ctx.from;
-
     try {
       if (action === 'delete' && ctx.message) {
         await ctx.deleteMessage().catch(() => {});
       }
-
       if (action === 'warn') {
         await this.logAction({ chatId, userId: targetUser.id, username: targetUser.username, firstName: targetUser.first_name, action: 'warn', reason, messageText: ctx.message?.text });
         await ctx.reply(`⚠️ @${targetUser.username || targetUser.first_name} uyarıldı. Sebep: ${reason}`);
       }
-
       if (action === 'kick') {
         await ctx.kickChatMember(targetUser.id);
         await this.logAction({ chatId, userId: targetUser.id, username: targetUser.username, firstName: targetUser.first_name, action: 'kick', reason });
         await ctx.reply(`👢 @${targetUser.username || targetUser.first_name} gruptan atıldı.`);
       }
-
       if (action === 'ban') {
         await ctx.banChatMember(targetUser.id);
         await this.logAction({ chatId, userId: targetUser.id, username: targetUser.username, firstName: targetUser.first_name, action: 'ban', reason });
         await ctx.reply(`🚫 @${targetUser.username || targetUser.first_name} yasaklandı.`);
       }
-
       if (action === 'mute') {
         const until = Math.floor(Date.now() / 1000) + 3600;
         await ctx.restrictChatMember(targetUser.id, { until_date: until, can_send_messages: false });

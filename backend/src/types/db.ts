@@ -1,7 +1,41 @@
 import { Generated, Insertable, Selectable, Updateable } from 'kysely';
 
+// ============ SAAS / TENANT ============
+
+export interface WorkspaceTable {
+  id: Generated<number>;
+  name: string;
+  slug: string;
+  owner_id: number | null;
+  plan_id: number | null;
+  status: Generated<string>; // 'active' | 'suspended' | 'trial'
+  bot_token: string | null;
+  bot_username: string | null;
+  settings: string | null; // JSON
+  created_at: Generated<string>;
+  updated_at: Generated<string>;
+}
+
+export interface SubscriptionPlanTable {
+  id: Generated<number>;
+  name: string;
+  slug: string;
+  description: string | null;
+  price_monthly: number;
+  price_yearly: number;
+  max_bots: number;
+  max_chats_per_bot: number;
+  max_team_members: number;
+  features: string | null; // JSON array of feature keys
+  is_active: Generated<number>;
+  created_at: Generated<string>;
+}
+
+// ============ MEVCUT TABLOLAR (tenant kolonu eklendi) ============
+
 export interface BotConfigTable {
   id: Generated<number>;
+  workspace_id: number | null; // TENANT
   token: string | null;
   welcome_message: string;
   welcome_enabled: number; // 0/1
@@ -14,6 +48,7 @@ export interface BotConfigTable {
 
 export interface ChatTable {
   id: Generated<number>;
+  workspace_id: number | null; // TENANT
   chat_id: string;
   title: string | null;
   type: string | null;
@@ -30,6 +65,7 @@ export interface ChatTable {
 
 export interface LogTable {
   id: Generated<number>;
+  workspace_id: number | null; // TENANT
   chat_id: string;
   chat_title: string | null;
   user_id: string | null;
@@ -44,14 +80,16 @@ export interface LogTable {
 
 export interface PanelUserTable {
   id: Generated<number>;
+  workspace_id: number | null; // TENANT
   username: string;
   password_hash: string;
-  role: string | null; // 'admin' | 'moderator' etc
+  role: string | null; // 'super_admin' | 'admin' | 'moderator' | 'user'
   created_at: string;
 }
 
 export interface ModerationSettingTable {
   id: Generated<number>;
+  workspace_id: number | null; // TENANT
   chat_id: string;
   enabled: number;
   rules_text: string | null;
@@ -68,6 +106,7 @@ export interface ModerationSettingTable {
 
 export interface BlacklistWordTable {
   id: Generated<number>;
+  workspace_id: number | null; // TENANT
   chat_id: string;
   word: string;
   created_at: string;
@@ -75,6 +114,7 @@ export interface BlacklistWordTable {
 
 export interface ModerationLogTable {
   id: Generated<number>;
+  workspace_id: number | null; // TENANT
   chat_id: string;
   user_id: string | null;
   username: string | null;
@@ -87,6 +127,7 @@ export interface ModerationLogTable {
 
 export interface ScheduledPostTable {
   id: Generated<number>;
+  workspace_id: number | null; // TENANT
   chat_id: string;
   content: string;
   parse_mode: string | null;
@@ -102,18 +143,21 @@ export interface ScheduledPostTable {
 
 export interface SubscriptionTable {
   id: Generated<number>;
+  workspace_id: number | null; // TENANT
   user_id: string;
-  chat_id: string | null;
-  plan: string | null;
+  plan_id: number | null;
+  plan_slug: string | null;
   status: string;
   expires_at: string | null;
   stripe_id: string | null;
   telegram_payment_charge_id: string | null;
+  trial_ends_at: string | null;
   created_at: string;
 }
 
 export interface AuditLogTable {
   id: Generated<number>;
+  workspace_id: number | null; // TENANT
   user_id: number | null;
   username: string | null;
   action: string;
@@ -131,6 +175,7 @@ export interface GlobalBlacklistTable {
 
 export interface ChatEventTable {
   id: Generated<number>;
+  workspace_id: number | null; // TENANT
   chat_id: string;
   event_type: string;
   user_id: string | null;
@@ -140,6 +185,7 @@ export interface ChatEventTable {
 
 export interface CaptchaSessionTable {
   id: Generated<number>;
+  workspace_id: number | null; // TENANT
   chat_id: string;
   user_id: string;
   code: string;
@@ -158,6 +204,7 @@ export interface ArticleTable {
 
 export interface CustomCommandTable {
   id: Generated<number>;
+  workspace_id: number | null; // TENANT
   command: string;
   response: string;
   is_active: Generated<number>;
@@ -166,6 +213,7 @@ export interface CustomCommandTable {
 
 export interface AutoReplyTable {
   id: Generated<number>;
+  workspace_id: number | null; // TENANT
   chat_id: string;
   trigger: string;
   response: string;
@@ -183,6 +231,7 @@ export interface ChatTemplateTable {
 
 export interface ChatAdminTable {
   id: Generated<number>;
+  workspace_id: number | null; // TENANT
   chat_id: string;
   user_id: string;
   username: string | null;
@@ -193,6 +242,7 @@ export interface ChatAdminTable {
 
 export interface DeletedMessageTable {
   id: Generated<number>;
+  workspace_id: number | null; // TENANT
   chat_id: string;
   user_id: string | null;
   username: string | null;
@@ -202,6 +252,7 @@ export interface DeletedMessageTable {
 
 export interface EditedMessageTable {
   id: Generated<number>;
+  workspace_id: number | null; // TENANT
   chat_id: string;
   user_id: string | null;
   username: string | null;
@@ -211,6 +262,8 @@ export interface EditedMessageTable {
 }
 
 export interface Database {
+  workspaces: WorkspaceTable;
+  subscription_plans: SubscriptionPlanTable;
   bot_config: BotConfigTable;
   chats: ChatTable;
   logs: LogTable;
@@ -242,7 +295,6 @@ export type Chat = Selectable<ChatTable>;
 export type NewChat = Insertable<ChatTable>;
 export type ChatUpdate = Updateable<ChatTable>;
 
-// ... add more as needed for other tables
 export type ScheduledPost = Selectable<ScheduledPostTable>;
 export type NewScheduledPost = Insertable<ScheduledPostTable>;
 
@@ -266,6 +318,12 @@ export type NewGlobalBlacklist = Insertable<GlobalBlacklistTable>;
 
 export type BlacklistWord = Selectable<BlacklistWordTable>;
 export type NewBlacklistWord = Insertable<BlacklistWordTable>;
+
+export type Workspace = Selectable<WorkspaceTable>;
+export type NewWorkspace = Insertable<WorkspaceTable>;
+
+export type SubscriptionPlan = Selectable<SubscriptionPlanTable>;
+export type NewSubscriptionPlan = Insertable<SubscriptionPlanTable>;
 
 // For bot multi-instance
 export interface BotStatus {

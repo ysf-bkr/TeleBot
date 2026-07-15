@@ -282,12 +282,10 @@ const translations: Record<Language, Record<string, string>> = {
     'landing.go_to_dashboard': 'Panele Git',
     'landing.login': 'Giriş Yap',
     'landing.register': 'Kayıt Ol',
-    
+
     // Setup Wizard
     'setup.title': 'Sistem Kurulumu',
     'setup.subtitle': 'TeleBot platformunu ilk kez çalıştırmak için gerekli ayarları yapın.',
-    'setup.license_key': 'Lisans Anahtarı',
-    'setup.license_desc': 'Satın aldığınız lisans kodunu girin (TRIAL yazarak veya boş bırakarak 7 günlük deneme sürümünü başlatabilirsiniz).',
     'setup.jwt_secret': 'JWT Güvenlik Anahtarı',
     'setup.jwt_desc': 'Giriş oturumlarını imzalamak için benzersiz ve karmaşık bir metin girin.',
     'setup.admin_email': 'Yönetici E-postası',
@@ -298,45 +296,48 @@ const translations: Record<Language, Record<string, string>> = {
     'setup.error': 'Kurulum başarısız oldu.',
     'setup.next': 'Devam Et',
     'setup.back': 'Geri Dön',
-    'setup.step_license': 'Lisans Aktivasyonu',
     'setup.step_security': 'Güvenlik & Şifreleme',
     'setup.step_admin': 'Yönetici Hesabı',
     'setup.step_bot': 'Telegram Bot Ayarları',
     'setup.step_confirm': 'Kurulum Özeti',
-    'setup.lic_option_full': 'Lisans Anahtarım Var',
-    'setup.lic_option_trial': 'Deneme Sürümünü Başlat (7 Gün)',
     'setup.summary_title': 'Kurulum Bilgileri',
     'setup.summary_desc': 'Lütfen girdiğiniz bilgileri son kez kontrol edin. "Kurulumu Tamamla" butonuna tıkladığınızda veritabanınız yapılandırılacak ve botunuz aktif edilecektir.',
-    
-    // License Blocker
-    'license.blocked_title': 'Lisans Aktivasyonu Gerekli',
-    'license.change_btn': 'Lisans Değiştir / Kurulum',
-    
+
     // Setup wizard helpers
     'setup.already_configured': 'Sistem zaten yapılandırılmış.',
     'setup.gen_secret_success': 'Güvenli rastgele anahtar üretildi!',
     'setup.jwt_placeholder': 'En az 32 karakter önerilir',
     'setup.password_placeholder': 'En az 6 karakter',
 
-    // Settings License Tab
-    'settings.license_tab_title': 'Lisans & Aktivasyon Ayarları',
-    'settings.license_status_trial': 'Deneme (Trial) Sürümü Aktif',
-    'settings.license_status_valid': 'Lisans Başarıyla Aktif Edildi',
-    'settings.license_status_invalid': 'Lisans Geçersiz / Bloke Edildi',
-    'settings.license_trial_expires': 'Deneme sürenizin bitmesine kalan zaman: {time}',
-    'settings.license_trial_days_hours': '{days} gün {hours} saat',
-    'settings.license_time_ended': 'Süre bitti',
-    'settings.license_unlocked_desc': 'Tüm platform özellikleri kilitleri açılmış ve kullanıma hazırdır.',
-    'settings.license_restricted_desc': 'Geçerli bir lisans girilmediği için platform özellikleri kısıtlanmıştır.',
-    'settings.license_active_domain': 'Aktif Domain',
-    'settings.license_fingerprint': 'Cihaz Parmak İzi (Fingerprint)',
-    'settings.license_new_entry': 'Yeni Lisans Girişi',
-    'settings.license_activate_btn': 'Aktive Et',
-    'settings.license_trial_continue_desc': 'Eğer lisans anahtarınız yoksa deneme modunu kullanmaya devam edebilirsiniz.',
-    'settings.license_deactivate_btn': 'Aktivasyonu Kaldır (Lisansı Serbest Bırak)',
-    'settings.license_deactivate_confirm': 'Lisansı kaldırmak istediğinizden emin misiniz? Bu işlem sunucudaki slotu serbest bırakacaktır.',
-    'settings.license_activate_success': 'Lisans anahtarı başarıyla aktif edildi!',
-    'settings.license_deactivate_success': 'Lisans başarıyla kaldırıldı.',
+    // Admin Panel
+    'nav.administration': 'Yönetim',
+    'nav.admin_panel': 'Admin Panel',
+    'admin.title': 'Super Admin Panel',
+    'admin.subtitle': 'Tüm workspace\'leri ve platformu yönetin',
+    'admin.total_workspaces': 'Toplam Workspace',
+    'admin.plans': 'Planlar',
+    'admin.total_users': 'Toplam Kullanıcı',
+    'admin.new_workspace': 'Yeni Workspace',
+    'admin.all_workspaces': 'Tüm Workspace\'ler',
+    'admin.name': 'Workspace Adı',
+    'admin.slug': 'Slug',
+    'admin.status_active': 'Aktif',
+    'admin.status_trial': 'Deneme',
+    'admin.status_suspended': 'Askıda',
+    'admin.no_workspaces': 'Henüz workspace bulunmuyor',
+
+    // Workspace
+    'workspace.title': 'Workspace Yönetimi',
+    'workspace.subtitle': 'Workspace ayarlarınızı görüntüleyin',
+    'workspace.plan': 'Plan',
+    'workspace.bot': 'Bot',
+    'workspace.status': 'Durum',
+    'workspace.usage': 'Kullanım İstatistikleri',
+    'workspace.bots': 'Bot Sayısı',
+    'workspace.chats': 'Grup/Kanal Sayısı',
+    'workspace.logs': 'Toplam Log',
+    'workspace.today': 'Bugünkü Aktivite',
+    'workspace.team': 'Ekip Üyeleri',
 
     // AI Settings
     'settings.ai_tab': 'Yapay Zeka (AI)',
@@ -628,12 +629,10 @@ const translations: Record<Language, Record<string, string>> = {
     'landing.go_to_dashboard': 'Go to Dashboard',
     'landing.login': 'Log In',
     'landing.register': 'Register',
-    
+
     // Setup Wizard
     'setup.title': 'System Setup',
     'setup.subtitle': 'Configure the required settings to run TeleBot for the first time.',
-    'setup.license_key': 'License Key',
-    'setup.license_desc': 'Enter your purchased license key (or type TRIAL to start a 7-day demo trial).',
     'setup.jwt_secret': 'JWT Secret Key',
     'setup.jwt_desc': 'Enter a unique, complex key to sign user sessions.',
     'setup.admin_email': 'Admin Email',
@@ -644,45 +643,18 @@ const translations: Record<Language, Record<string, string>> = {
     'setup.error': 'Setup failed.',
     'setup.next': 'Next Step',
     'setup.back': 'Go Back',
-    'setup.step_license': 'License Activation',
     'setup.step_security': 'Security & Encryption',
     'setup.step_admin': 'Administrator Account',
     'setup.step_bot': 'Telegram Bot Configuration',
     'setup.step_confirm': 'Setup Summary',
-    'setup.lic_option_full': 'I have a License Key',
-    'setup.lic_option_trial': 'Start 7-Day Trial Mode',
     'setup.summary_title': 'Configuration Summary',
     'setup.summary_desc': 'Please review your entries. Clicking "Complete Setup" will finalize your database, create your admin account, and initialize the Telegram bot.',
-    
-    // License Blocker
-    'license.blocked_title': 'License Activation Required',
-    'license.change_btn': 'Change License / Setup',
-    
+
     // Setup wizard helpers
     'setup.already_configured': 'System is already configured.',
     'setup.gen_secret_success': 'Secure random secret generated!',
     'setup.jwt_placeholder': 'At least 32 characters recommended',
     'setup.password_placeholder': 'Min 6 characters',
-
-    // Settings License Tab
-    'settings.license_tab_title': 'License & Activation Settings',
-    'settings.license_status_trial': 'Trial Version Active',
-    'settings.license_status_valid': 'License Activated Successfully',
-    'settings.license_status_invalid': 'License Invalid / Blocked',
-    'settings.license_trial_expires': 'Time remaining until trial expires: {time}',
-    'settings.license_trial_days_hours': '{days} days {hours} hours',
-    'settings.license_time_ended': 'Time expired',
-    'settings.license_unlocked_desc': 'All platform features are unlocked and ready for use.',
-    'settings.license_restricted_desc': 'Platform features are restricted because no valid license is configured.',
-    'settings.license_active_domain': 'Active Domain',
-    'settings.license_fingerprint': 'Device Fingerprint',
-    'settings.license_new_entry': 'New License Entry',
-    'settings.license_activate_btn': 'Activate',
-    'settings.license_trial_continue_desc': 'If you do not have a license key, you can continue using trial mode.',
-    'settings.license_deactivate_btn': 'Remove Activation (Release License Slot)',
-    'settings.license_deactivate_confirm': 'Are you sure you want to deactivate this license? This will release the slot on the server.',
-    'settings.license_activate_success': 'License key activated successfully!',
-    'settings.license_deactivate_success': 'License deactivated successfully.',
 
     // AI Settings
     'settings.ai_tab': 'AI Moderation',

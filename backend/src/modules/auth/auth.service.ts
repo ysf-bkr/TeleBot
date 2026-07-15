@@ -2,6 +2,7 @@ import bcrypt from 'bcryptjs';
 import crypto from 'crypto';
 import { getDb } from '../../db/index.js';
 import { generateToken } from '../../middleware/auth.js';
+import workspaceRepository from '../../repositories/workspace.repository.js';
 import botService from '../../services/bot.service.js';
 import authRepository from './auth.repository.js';
 
@@ -18,7 +19,7 @@ interface TelegramAuthData {
 
 export interface LoginResult {
   token: string;
-  user: { id: string | number; username: string; role?: string };
+  user: { id: string | number; username: string; role?: string; workspace_id?: number };
 }
 
 class AuthService {
@@ -32,6 +33,36 @@ class AuthService {
       }
     }
     return { botUsername };
+  }
+
+  /**
+   * Kullanıcının workspace'ini bul veya oluştur
+   */
+  private async resolveWorkspace(userId: number, username: string): Promise<number | undefined> {
+    // Kullanıcının zaten bir workspace'i var mı?
+    const existingWorkspaces = await workspaceRepository.findByOwner(userId);
+    if (existingWorkspaces.length > 0) {
+      return existingWorkspaces[0].id;
+    }
+
+    // Yoksa yeni workspace oluştur
+    try {
+      const slug = `ws-${userId}-${Date.now().toString(36)}`;
+      const workspace = await workspaceRepository.create({
+        name: `${username}'s Workspace`,
+        slug,
+        owner_id: userId,
+        plan_id: null, // Free plan default
+        status: 'trial',
+        bot_token: null,
+        bot_username: null,
+        settings: null,
+      });
+      return workspace?.id;
+    } catch (err) {
+      console.error('[AUTH] Workspace oluşturma hatası:', err);
+      return undefined;
+    }
   }
 
   async loginWithTelegram(authData: TelegramAuthData): Promise<LoginResult> {
@@ -66,9 +97,22 @@ class AuthService {
 
     const adminUsername = process.env.ADMIN_TELEGRAM_USERNAME || '';
     const isSuperAdmin = adminUsername && tgUsername.toLowerCase() === adminUsername.toLowerCase();
-    const role = isSuperAdmin ? 'admin' : 'user';
-    const token = generateToken({ id: authData.id, username: tgUsername, role });
-    return { token, user: { id: authData.id, username: tgUsername, role } };
+    const role = isSuperAdmin ? 'super_admin' : 'admin';
+
+    // Workspace ID'sini bul
+    const workspaceId = user ? await this.resolveWorkspace(user.id, tgUsername) : undefined;
+
+    const token = generateToken({
+      id: authData.id,
+      username: tgUsername,
+      role,
+      workspace_id: workspaceId,
+    });
+
+    return {
+      token,
+      user: { id: authData.id, username: tgUsername, role, workspace_id: workspaceId },
+    };
   }
 
   async registerWithEmail(email: string, password: string): Promise<LoginResult> {
@@ -79,11 +123,24 @@ class AuthService {
     const passwordHash = bcrypt.hashSync(password, 10);
     const createdUser = await authRepository.createUser({ username: cleanEmail, passwordHash });
     if (!createdUser) throw new Error('Kullanıcı oluşturulurken bir hata oluştu');
+
     const adminEmail = process.env.ADMIN_EMAIL || 'admin@admin.com';
     const isSuperAdmin = cleanEmail.toLowerCase() === adminEmail.toLowerCase();
-    const role = isSuperAdmin ? 'admin' : 'user';
-    const token = generateToken({ id: createdUser.id, username: cleanEmail, role });
-    return { token, user: { id: createdUser.id, username: cleanEmail, role } };
+    const role = isSuperAdmin ? 'super_admin' : 'admin';
+
+    // Workspace oluştur
+    const workspaceId = await this.resolveWorkspace(createdUser.id, cleanEmail);
+
+    const token = generateToken({
+      id: createdUser.id,
+      username: cleanEmail,
+      role,
+      workspace_id: workspaceId,
+    });
+    return {
+      token,
+      user: { id: createdUser.id, username: cleanEmail, role, workspace_id: workspaceId },
+    };
   }
 
   async loginWithEmail(email: string, password: string): Promise<LoginResult> {
@@ -92,27 +149,34 @@ class AuthService {
     if (!user || user.password_hash === 'N/A') throw new Error('E-posta adresi veya şifre hatalı');
     const isMatch = bcrypt.compareSync(password, user.password_hash);
     if (!isMatch) throw new Error('E-posta adresi veya şifre hatalı');
+
     const adminEmail = process.env.ADMIN_EMAIL || 'admin@admin.com';
     const isSuperAdmin = cleanEmail.toLowerCase() === adminEmail.toLowerCase();
-    const role = isSuperAdmin ? 'admin' : 'user';
-    const token = generateToken({ id: user.id, username: cleanEmail, role });
-    return { token, user: { id: user.id, username: cleanEmail, role } };
+    const role = isSuperAdmin ? 'super_admin' : 'admin';
+
+    // Workspace ID'sini bul
+    const workspaceId = await this.resolveWorkspace(user.id, cleanEmail);
+
+    const token = generateToken({
+      id: user.id,
+      username: cleanEmail,
+      role,
+      workspace_id: workspaceId,
+    });
+    return {
+      token,
+      user: { id: user.id, username: cleanEmail, role, workspace_id: workspaceId },
+    };
   }
 
-
-
-  // YENİ: Şifre Sıfırlama
   async forgotPassword(email: string): Promise<{ success: boolean }> {
     const cleanEmail = email.trim().toLowerCase();
     const user = await authRepository.findByUsername(cleanEmail);
     if (!user) {
-      // Güvenlik: kullanıcı var mı yok mu belli etme
       return { success: true };
     }
-    // Reset token oluştur (gerçek uygulamada email gönderilir)
     const resetToken = crypto.randomBytes(32).toString('hex');
     const db: any = getDb();
-    // Token'ı veritabanına kaydet (password_resets tablosu yoksa ekle)
     try {
       const pragmaQuery: any = { sql: "PRAGMA table_info('panel_users')", parameters: [] };
       const tableInfo = await db.executeQuery(pragmaQuery);
@@ -144,8 +208,18 @@ class AuthService {
       .set({ password_hash: passwordHash, reset_token: null, reset_token_expires: null })
       .where('id', '=', user.id)
       .execute();
-    const token2 = generateToken({ id: user.id, username: user.username, role: user.role || 'user' });
-    return { token: token2, user: { id: user.id, username: user.username, role: user.role || 'user' } };
+
+    const workspaceId = await this.resolveWorkspace(user.id, user.username);
+    const token2 = generateToken({
+      id: user.id,
+      username: user.username,
+      role: user.role || 'admin',
+      workspace_id: workspaceId,
+    });
+    return {
+      token: token2,
+      user: { id: user.id, username: user.username, role: user.role || 'admin', workspace_id: workspaceId },
+    };
   }
 }
 

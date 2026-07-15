@@ -1,8 +1,8 @@
-# 🤖 Telegram Bot Yönetim Paneli
+# 🤖 TeleBot - Telegram Bot Yönetim Paneli (SaaS)
 
-**Güçlü, modern ve kapsamlı bir Telegram bot yönetim paneli.** Birden çok grubu, moderasyonu, zamanlanmış mesajları, abonelikleri ve çok daha fazlasını tek bir arayüzden yönetin.
+**Güçlü, modern ve kapsamlı bir SaaS Telegram bot yönetim paneli.** Multi-tenant mimarisi ile birden çok kullanıcıya/bot'a hizmet verir. Gelişmiş moderasyon, zamanlanmış mesajlar, abonelik sistemi ve çok daha fazlasını tek bir arayüzden yönetin.
 
-![Version](https://img.shields.io/badge/version-2.1-red)
+![Version](https://img.shields.io/badge/version-2.2--saas-red)
 ![TypeScript](https://img.shields.io/badge/TypeScript-5.9-blue)
 ![Fastify](https://img.shields.io/badge/Fastify-5-lightgrey)
 ![React](https://img.shields.io/badge/React-19-61DAFB)
@@ -10,15 +10,53 @@
 
 ---
 
+## 🏢 SaaS / Multi-Tenant Mimarisi
+
+Proje tamamen **SaaS (Software as a Service)** mimarisine dönüştürülmüştür:
+
+- **Workspace (Tenant)** bazlı veri izolasyonu
+- Her kullanıcı kendine ait workspace'inde çalışır
+- **Super Admin** tüm workspace'leri yönetebilir
+- **Plan bazlı limitler** (bot sayısı, grup sayısı, ekip üyesi sayısı)
+- **3 hazır plan**: Free, Pro, Enterprise
+- Her login'de otomatik workspace oluşturma
+- JWT içinde `workspace_id` taşınır, tüm sorgular buna göre filtrelenir
+
+### Plan Karşılaştırması
+
+| Özellik | Free | Pro ($29/ay) | Enterprise ($99/ay) |
+|---------|------|-------------|--------------------|
+| Bot Sayısı | 1 | 3 | 10 |
+| Grup/Kanal | 5 | 50 | 500 |
+| Ekip Üyesi | 1 | 5 | 50 |
+| Temel Moderasyon | ✅ | ✅ | ✅ |
+| Gelişmiş Moderasyon | ❌ | ✅ | ✅ |
+| CAPTCHA | ❌ | ✅ | ✅ |
+| Planlayıcı | ❌ | ✅ | ✅ |
+| Özel Komutlar | ❌ | ✅ | ✅ |
+| Analitik | ❌ | ✅ | ✅ |
+| Ekip Yönetimi | ❌ | ✅ | ✅ |
+| White-Label | ❌ | ❌ | ✅ |
+| Öncelikli Destek | ❌ | ❌ | ✅ |
+
+---
+
 ## 📸 Ekran Görüntüleri
 
-| Dashboard | Grup Analitiği | Moderasyon |
-|-----------|---------------|------------|
-| ![Dashboard](https://placehold.co/400x250/1a1a2e/e74c3c?text=Dashboard) | ![Analytics](https://placehold.co/400x250/1a1a2e/3498db?text=Analytics) | ![Moderation](https://placehold.co/400x250/1a1a2e/2ecc71?text=Moderation) |
+| Dashboard | Admin Panel | Abonelikler |
+|-----------|-------------|-------------|
+| ![Dashboard](https://placehold.co/400x250/1a1a2e/e74c3c?text=Dashboard) | ![Admin](https://placehold.co/400x250/1a1a2e/3498db?text=Admin+Panel) | ![Plans](https://placehold.co/400x250/1a1a2e/2ecc71?text=Plans) |
 
 ---
 
 ## ✨ Özellikler
+
+### 🏢 SaaS & Multi-Tenant
+- **Workspace Yönetimi** - Her kullanıcı kendi workspace'ine sahip
+- **Abonelik Planları** - Free, Pro, Enterprise
+- **Plan Limit Kontrolü** - Bot, chat, ekip üyesi sınırları
+- **Super Admin Paneli** - Tüm workspace'leri yönetme
+- **Dashboard İstatistikleri** - Workspace bazlı metrikler
 
 ### 🤖 Çoklu Bot Desteği
 - Birden çok Telegram botunu tek panelden yönetin
@@ -28,14 +66,12 @@
 ### 💬 Grup Yönetimi
 - Tüm grupları görüntüleme ve yönetme
 - Hoş geldin mesajları (global ve grup bazlı)
-- Grup adı, açıklaması, fotoğrafı güncelleme
 - **Mesaj Geçmişi** - Son 50 mesajı görüntüleme
 - **Üye Listesi** - Yöneticileri ve üyeleri görüntüleme
 - **Yönetici Yönetimi** - Yönetici atama/yetkisini alma
 - **Otomatik Yanıtlayıcı** - Tetikleyici kelimelere otomatik yanıt
 - **Silinen/Düzenlenen Mesajlar** - Geçmiş kayıtları
 - **Export/Import** - Grup ayarlarını JSON yedekleme
-- **Gruptan Ayrılma** - Botu gruptan çıkarma
 
 ### 🛡️ Gelişmiş Moderasyon
 - Yasaklı kelime filtresi (kara liste)
@@ -57,18 +93,17 @@
 - En aktif kullanıcılar
 - Moderasyon istatistikleri
 - Günlük/haftalık/aylık görünüm
-- Chart.js ile görsel grafikler
 
 ### 📋 Denetim ve Güvenlik
 - **Denetim Kayıtları** - Tüm API çağrıları loglanır
-- Sayfalama, arama, filtreleme, sıralama
 - JWT tabanlı kimlik doğrulama
-- RBAC (Admin/Moderatör/Kullanıcı rolleri)
+- RBAC (Super Admin / Admin / User rolleri)
 
-### 💳 Abonelik Yönetimi
-- Kullanıcı abonelikleri oluşturma ve yönetme
-- Aylık, yıllık, ömür boyu planlar
+### 💳 Abonelik & Plan Yönetimi
 - Stripe webhook entegrasyonu
+- Plan yükseltme/düşürme
+- Deneme süresi yönetimi
+- Kullanım istatistikleri
 
 ### 🔧 Ek Özellikler
 - 📟 **Özel Komutlar** - Bot için özel `/komut` tanımlama
@@ -102,15 +137,18 @@ npm run install:all
 
 # Backend yapılandırması
 cp backend/.env.example backend/.env
-# .env dosyasını düzenleyin:
-# TELEGRAM_BOT_TOKEN=your_bot_token
-# ADMIN_EMAIL=admin@example.com
-# ADMIN_PASSWORD=your_password
-# JWT_SECRET=your_jwt_secret
+# .env dosyasını düzenleyin
 
 # Geliştirme sunucusunu başlat
 npm run dev
 ```
+
+İlk çalıştırmada **Kurulum Sihirbazı** açılacak. Burada:
+1. JWT Güvenlik Anahtarı
+2. Admin e-posta ve şifresi
+3. Telegram Bot Token'ı
+
+bilgilerini girerek sistemi başlatabilirsiniz. Setup işlemi sırasında otomatik olarak workspace oluşturulur.
 
 ### Ortam Değişkenleri (.env)
 
@@ -125,12 +163,7 @@ npm run dev
 | `CORS_ORIGIN` | CORS izin verilen origin | `*` |
 | `LOG_LEVEL` | Log seviyesi | `info` |
 
-> ⚠️ **GÜVENLİK UYARISI (SECURITY WARNING):**
-> 
-> Üretim (Production) ortamında varsayılan `ADMIN_EMAIL`, `ADMIN_PASSWORD` ve `JWT_SECRET` değerlerini bırakmak kritik bir güvenlik açığıdır.
-> - **JWT_SECRET:** Üretim modunda (`NODE_ENV=production`) varsayılan/fallback değerlerin (`dev_fallback`, `admin`, `change_me` vb.) kullanılması engellenmiştir; sunucu başlatılırken fatal hata fırlatarak durur (fail-fast). Lütfen üretim ortamına benzersiz bir secret girin.
-> - **ADMIN Giriş Bilgileri:** İlk kurulumdan sonra sisteme girip **Yönetici Ekibi** sayfasından varsayılan şifreyi (`admin123`) derhal değiştirin!
-> - **7 Günlük TRIAL (Deneme Sürümü) Modu:** Eğer sunucuda `LICENSE_KEY` değeri girilmezse (veya kurulum sihirbazında boş bırakılırsa), platform otomatik olarak **7 günlük ücretsiz deneme modunda** çalışacaktır. 7 günün sonunda gelişmiş yönetim özellikleri kilitlenir ve lisans anahtarı girilmesi istenir. Arka plandaki botların çalışması ise kesintiye uğramaz.
+> ⚠️ **GÜVENLİK UYARISI:** Üretim ortamında varsayılan değerleri kullanmayın!
 
 ---
 
@@ -138,108 +171,71 @@ npm run dev
 
 ```
 telegram-bot-panel/
-├── backend/                     # Backend (Fastify + TypeScript)
+├── backend/                          # Backend (Fastify + TypeScript)
 │   ├── src/
-│   │   ├── index.ts             # Sunucu başlangıcı
-│   │   ├── db/                  # Veritabanı (SQLite + Kysely)
-│   │   │   ├── index.ts         # DB bağlantısı
-│   │   │   └── migrations.ts    # Tablo oluşturma
-│   │   ├── modules/             # Modüller (12 adet)
-│   │   │   ├── auth/            # JWT, Telegram, Email giriş
-│   │   │   ├── chat/            # Grup yönetimi + özellikler
-│   │   │   ├── moderation/      # Moderasyon, CAPTCHA, RBAC
-│   │   │   ├── scheduler/       # Zamanlanmış gönderiler
-│   │   │   ├── analytics/       # Metrikler ve grafikler
-│   │   │   ├── articles/        # Makale sistemi
-│   │   │   ├── audit/           # Denetim kayıtları
-│   │   │   ├── commands/        # Özel komutlar
-│   │   │   ├── log/             # Aktivite logları
-│   │   │   ├── payments/        # Abonelik yönetimi
-│   │   │   ├── settings/        # Sistem ayarları
-│   │   │   └── └── ...
-│   │   ├── services/            # Servisler (bot.service.ts)
-│   │   ├── plugins/             # Fastify plugin (auth)
-│   │   ├── routes/              # Webhook route
-│   │   ├── websocket/           # Socket.io
-│   │   └── types/               # TypeScript tipleri
-│   └── package.json
-│
-├── frontend/                    # Frontend (React + Panda CSS)
-│   ├── src/
-│   │   ├── App.tsx              # Ana uygulama + routing
-│   │   ├── lib/
-│   │   │   ├── api.ts           # Axios API (75+ endpoint)
-│   │   │   └── i18n.ts          # Çoklu dil (TR/EN)
-│   │   ├── components/
-│   │   │   ├── layout/          # Header, Sidebar
-│   │   │   └── ui/              # Button, Card, Modal, vb.
-│   │   ├── pages/               # Sayfalar (17 adet)
-│   │   │   ├── analytics/       # Grup analitiği
-│   │   │   ├── articles/        # Sayfalar
-│   │   │   ├── audit/           # Denetim kayıtları
-│   │   │   ├── auth/            # Giriş, şifre sıfırlama
-│   │   │   ├── chat/            # Gruplar, detay, şablonlar
-│   │   │   ├── commands/        # Özel komutlar
-│   │   │   ├── dashboard/       # Ana sayfa
-│   │   │   ├── log/             # Canlı aktivite
-│   │   │   ├── moderation/      # Moderasyon, global bl, profil
-│   │   │   ├── payments/        # Abonelikler
-│   │   │   ├── scheduler/       # Mesaj planlayıcı
-│   │   │   ├── settings/        # Sistem ayarları
-│   │   │   ├── team/            # Yönetici ekibi
-│   │   │   └── ...
-│   │   └── types/               # TypeScript tipleri
-│   └── package.json
-│
-└── package.json                 # Ana paket (monorepo)
+│   │   ├── index.ts                  # Sunucu başlangıcı
+│   │   ├── db/                       # Veritabanı (SQLite + Kysely)
+│   │   ├── middleware/
+│   │   │   ├── auth.ts               # JWT token oluşturma
+│   │   │   ├── tenant.ts             # Tenant (workspace) middleware
+│   │   │   └── planLimits.ts         # Plan limit kontrolü
+│   │   ├── modules/
+│   │   │   ├── saas/                 # 🆕 SaaS modülü
+│   │   │   │   ├── workspace.controller.ts
+│   │   │   │   └── workspace.routers.ts
+│   │   │   ├── auth/                 # JWT, Telegram, Email giriş
+│   │   │   ├── setup/                # Setup sihirbazı
+│   │   │   └── ... (12 modül)
+│   │   ├── repositories/
+│   │   │   ├── workspace.repository.ts  # 🆕
+│   │   │   ├── plan.repository.ts       # 🆕
+│   │   │   └── subscription.repository.ts
+│   │   └── types/
+│   │       ├── db.ts                 # Veritabanı tipleri
+│   │       └── fastify.ts            # Fastify deklarasyonları
+│   │
+│   ├── frontend/                     # Frontend (React + Panda CSS)
+│   │   ├── src/
+│   │   │   ├── App.tsx               # Ana uygulama + routing
+│   │   │   ├── pages/
+│   │   │   │   ├── admin/            # 🆕 Super Admin Panel
+│   │   │   │   └── ... (17 sayfa)
+│   │   │   └── lib/
+│   │   │       ├── api.ts            # Axios API
+│   │   │       └── i18n.ts           # Çoklu dil (TR/EN)
+│   │   └── ...
+│   └── ...
 ```
 
 ---
 
-## 🛣️ API Route'ları
+## 🛣️ API Route'ları (SaaS)
 
-### Auth
+### Platform & Workspace
 | Metot | Route | Açıklama |
 |-------|-------|----------|
-| POST | `/api/auth/login` | Telegram ile giriş |
-| POST | `/api/auth/login-email` | E-posta ile giriş |
-| POST | `/api/auth/register` | Kayıt |
-| POST | `/api/auth/forgot-password` | Şifre sıfırlama |
-| GET | `/api/auth/config` | Bot yapılandırması |
+| GET | `/api/plans` | Plan listesi (public) |
+| GET | `/api/workspace` | Kullanıcının workspace detayı + plan |
+| PATCH | `/api/workspace` | Workspace güncelleme |
+| GET | `/api/workspace/stats` | Dashboard istatistikleri |
 
-### Chats
+### Super Admin
 | Metot | Route | Açıklama |
 |-------|-------|----------|
-| GET | `/api/chats` | Grup listesi |
-| GET | `/api/chats/:id` | Grup detayı |
-| GET | `/api/chats/:id/messages` | Mesaj geçmişi |
-| GET | `/api/chats/:id/members` | Üye listesi |
-| GET | `/api/chats/:id/admins` | Yöneticiler |
-| GET | `/api/chats/:id/auto-replies` | Otomatik yanıtlar |
-| GET | `/api/chats/:id/deleted-messages` | Silinen mesajlar |
-| GET | `/api/chats/:id/edited-messages` | Düzenlenen mesajlar |
-| GET | `/api/chats/:id/reports` | Raporlar |
-| GET | `/api/chats/:id/export` | Ayarları dışa aktar |
-| POST | `/api/chats/:id/import` | Ayarları içe aktar |
-| POST | `/api/chats/broadcast` | Toplu mesaj |
+| GET | `/api/admin/workspaces` | Tüm workspace'ler |
+| GET | `/api/admin/workspaces/:id` | Workspace detayı |
+| POST | `/api/admin/workspaces` | Yeni workspace |
+| PATCH | `/api/admin/workspaces/:id` | Workspace güncelleme |
+| DELETE | `/api/admin/workspaces/:id` | Workspace silme |
+| GET | `/api/admin/stats` | Platform istatistikleri |
 
-### Moderation
+### Setup
 | Metot | Route | Açıklama |
 |-------|-------|----------|
-| GET | `/api/moderation/:id/settings` | Moderasyon ayarları |
-| GET | `/api/moderation/:id/blacklist` | Kara liste |
-| GET | `/api/moderation/:id/logs` | İhlal logları |
-| GET | `/api/moderation/:id/captcha` | CAPTCHA oturumları |
-| GET | `/api/moderation/global-blacklist` | Global kara liste |
-| GET | `/api/moderation/user/:id/profile` | Kullanıcı profili |
-| POST | `/api/moderation/test-webhook` | Webhook test |
+| GET | `/api/setup/status` | Kurulum durumu sorgulama |
+| POST | `/api/setup/configure` | İlk kurulum (workspace + admin oluşturur) |
 
-### Diğer Modüller
-- `GET/POST /api/scheduler` - Mesaj planlayıcı
-- `GET/POST/PATCH/DELETE /api/articles` - Sayfalar
-- `GET/POST/DELETE /api/commands` - Özel komutlar
-- `GET/POST/DELETE /api/payments/subscriptions` - Abonelikler
-- `GET /api/audit/logs` - Denetim kayıtları (pagination, search, filter)
+Diğer tüm route'lar mevcut yapısını korur, sadece `workspace_id` filtresi eklenmiştir.
 
 ---
 
@@ -258,7 +254,6 @@ telegram-bot-panel/
 - **React 19** - UI kütüphanesi
 - **Panda CSS** - CSS-in-JS framework
 - **React Router v7** - Sayfa yönlendirme
-- **Chart.js** - Grafik ve metrikler
 - **Axios** - HTTP istemcisi
 - **Socket.io Client** - Gerçek zamanlı
 - **Lucide React** - İkon seti
@@ -270,22 +265,19 @@ telegram-bot-panel/
 
 | Sayfa | Route | Açıklama |
 |-------|-------|----------|
-| Gösterge Paneli | `/dashboard` | Bot durumu, istatistikler, son aktiviteler |
+| 🆕 Admin Panel | `/admin` | Super Admin - workspace yönetimi |
+| Gösterge Paneli | `/dashboard` | Bot durumu, istatistikler |
 | Sistem Ayarları | `/settings` | Bot token, profil, hoş geldin mesajı |
-| Telegram Grupları | `/chats` | Grup listesi, toggle, özel mesaj |
-| Grup Detayı | `/chats/:id` | Mesajlar, üyeler, yöneticiler, raporlar |
-| Gelişmiş Moderasyon | `/moderation` | Ayarlar, CAPTCHA, global bl, profiller |
+| Telegram Grupları | `/chats` | Grup listesi, toggle |
+| Grup Detayı | `/chats/:id` | Mesajlar, üyeler, yöneticiler |
+| Gelişmiş Moderasyon | `/moderation` | Ayarlar, CAPTCHA, blacklist |
 | Mesaj Planlayıcı | `/scheduler` | Zamanlanmış gönderiler |
 | Sayfalar | `/articles` | Makale CRUD |
-| Grup Analitiği | `/analytics` | Her grup için ayrı metrikler |
-| Canlı Aktivite | `/logs` | Gerçek zamanlı aktivite akışı |
-| Denetim Kayıtları | `/audit` | API logları, arama, filtreleme |
-| Özel Komutlar | `/commands` | Bot için özel /komutlar |
+| Grup Analitiği | `/analytics` | Metrikler |
+| Canlı Aktivite | `/logs` | Gerçek zamanlı aktivite |
+| Denetim Kayıtları | `/audit` | API logları |
+| Özel Komutlar | `/commands` | Bot için /komutlar |
 | Abonelikler | `/subscriptions` | Kullanıcı abonelikleri |
-| Global Kara Liste | `/global-blacklist` | Spammer yönetimi |
-| Kullanıcı Profili | `/user-profile` | Kullanıcı sorgulama |
-| Webhook Test | `/webhook-test` | URL test aracı |
-| Yönetici Ekibi | `/team` | Kullanıcı rolleri |
 
 ---
 
@@ -306,22 +298,6 @@ npm run typecheck
 
 # Build
 npm run build
-```
-
----
-
-## 🐳 Docker Deployment
-
-```bash
-# Build
-docker build -t telegram-bot-panel .
-
-# Run
-docker run -p 3000:3000 \
-  -e TELEGRAM_BOT_TOKEN=your_token \
-  -e ADMIN_EMAIL=admin@example.com \
-  -e ADMIN_PASSWORD=your_password \
-  telegram-bot-panel
 ```
 
 ---
@@ -349,4 +325,4 @@ AGPL-3.0 License - Detaylar için [LICENSE](LICENSE) dosyasına bakın.
 
 ---
 
-> **Not:** Bu proje [@BotFather](https://t.me/BotFather) ile oluşturulan bot token'ları ile çalışır. Botunuzu grubunuza ekleyip yönetici yapmayı unutmayın.
+> **Not:** Bu proje [@BotFather](https://t.me/BotFather) ile oluşturulan bot token'ları ile çalışır. İlk kurulumda Setup Wizard sizi adım adım yönlendirir.

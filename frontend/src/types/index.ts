@@ -5,6 +5,52 @@ export interface User {
   username: string;
   first_name?: string;
   role?: string;
+  workspace_id?: number;
+}
+
+export interface Workspace {
+  id: number;
+  name: string;
+  slug: string;
+  owner_id: number | null;
+  plan_id: number | null;
+  status: string;
+  bot_token: string | null;
+  bot_username: string | null;
+  settings: string | null;
+  created_at: string;
+  updated_at: string;
+  subscription?: Subscription | null;
+  plan?: SubscriptionPlan | null;
+}
+
+export interface SubscriptionPlan {
+  id: number;
+  name: string;
+  slug: string;
+  description: string | null;
+  price_monthly: number;
+  price_yearly: number;
+  max_bots: number;
+  max_chats_per_bot: number;
+  max_team_members: number;
+  features: string | null;
+  is_active: number;
+  created_at: string;
+}
+
+export interface WorkspaceStats {
+  bots: number;
+  chats: number;
+  logs: number;
+  todayActivity: number;
+  teamMembers: number;
+}
+
+export interface AdminStats {
+  workspaces: number;
+  plans: number;
+  users: number;
 }
 
 export interface Chat {

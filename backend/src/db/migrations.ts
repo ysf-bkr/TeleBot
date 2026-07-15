@@ -6,11 +6,58 @@ import { Kysely } from 'kysely';
 import type { Database } from '../types/db.js';
 
 export async function runMigrations(db: Kysely<Database>) {
+  // ============================================================
+  // SAAS / TENANT TABLOLARI (Önce oluşturulmalı)
+  // ============================================================
+
+  // Workspace (Tenant) tablosu
+  await db.schema
+    .createTable('workspaces')
+    .ifNotExists()
+    .addColumn('id', 'integer', (col) => col.primaryKey().autoIncrement())
+    .addColumn('name', 'text', (col) => col.notNull())
+    .addColumn('slug', 'text', (col) => col.notNull().unique())
+    .addColumn('owner_id', 'integer')
+    .addColumn('plan_id', 'integer')
+    .addColumn('status', 'text', (col) => col.notNull().defaultTo('trial'))
+    .addColumn('bot_token', 'text')
+    .addColumn('bot_username', 'text')
+    .addColumn('settings', 'text')
+    .addColumn('created_at', 'text', (col) => col.notNull().defaultTo('CURRENT_TIMESTAMP'))
+    .addColumn('updated_at', 'text', (col) => col.notNull().defaultTo('CURRENT_TIMESTAMP'))
+    .execute();
+
+  // Subscription plans tablosu
+  await db.schema
+    .createTable('subscription_plans')
+    .ifNotExists()
+    .addColumn('id', 'integer', (col) => col.primaryKey().autoIncrement())
+    .addColumn('name', 'text', (col) => col.notNull())
+    .addColumn('slug', 'text', (col) => col.notNull().unique())
+    .addColumn('description', 'text')
+    .addColumn('price_monthly', 'integer', (col) => col.notNull().defaultTo(0))
+    .addColumn('price_yearly', 'integer', (col) => col.notNull().defaultTo(0))
+    .addColumn('max_bots', 'integer', (col) => col.notNull().defaultTo(1))
+    .addColumn('max_chats_per_bot', 'integer', (col) => col.notNull().defaultTo(10))
+    .addColumn('max_team_members', 'integer', (col) => col.notNull().defaultTo(1))
+    .addColumn('features', 'text') // JSON array
+    .addColumn('is_active', 'integer', (col) => col.notNull().defaultTo(1))
+    .addColumn('created_at', 'text', (col) => col.notNull().defaultTo('CURRENT_TIMESTAMP'))
+    .execute();
+
+  // Seed default plans
+  await seedDefaultPlans(db);
+
+  // ============================================================
+  // MEVCUT TABLOLAR (workspace_id kolonu eklendi)
+  // ============================================================
+
   // bot_config
   await db.schema
     .createTable('bot_config')
     .ifNotExists()
     .addColumn('id', 'integer', (col) => col.primaryKey().autoIncrement())
+    .addColumn('workspace_id', 'integer') // TENANT
     .addColumn('token', 'text')
     .addColumn('welcome_message', 'text', (col) =>
       col.notNull().defaultTo(
@@ -44,12 +91,15 @@ export async function runMigrations(db: Kysely<Database>) {
 
   // Ensure webhook_domain column exists (for existing DBs)
   await addColumnIfNotExists(db, 'bot_config', 'webhook_domain', 'TEXT');
+  // Ensure workspace_id column exists
+  await addColumnIfNotExists(db, 'bot_config', 'workspace_id', 'INTEGER');
 
   // chats
   await db.schema
     .createTable('chats')
     .ifNotExists()
     .addColumn('id', 'integer', (col) => col.primaryKey().autoIncrement())
+    .addColumn('workspace_id', 'integer') // TENANT
     .addColumn('chat_id', 'text', (col) => col.notNull().unique())
     .addColumn('title', 'text')
     .addColumn('type', 'text')
@@ -64,6 +114,7 @@ export async function runMigrations(db: Kysely<Database>) {
     .createTable('logs')
     .ifNotExists()
     .addColumn('id', 'integer', (col) => col.primaryKey().autoIncrement())
+    .addColumn('workspace_id', 'integer') // TENANT
     .addColumn('chat_id', 'text', (col) => col.notNull())
     .addColumn('chat_title', 'text')
     .addColumn('user_id', 'text')
@@ -81,8 +132,10 @@ export async function runMigrations(db: Kysely<Database>) {
     .createTable('panel_users')
     .ifNotExists()
     .addColumn('id', 'integer', (col) => col.primaryKey().autoIncrement())
+    .addColumn('workspace_id', 'integer') // TENANT
     .addColumn('username', 'text', (col) => col.notNull().unique())
     .addColumn('password_hash', 'text', (col) => col.notNull())
+    .addColumn('role', 'text', (col) => col.defaultTo('user'))
     .addColumn('created_at', 'text', (col) => col.notNull().defaultTo('CURRENT_TIMESTAMP'))
     .execute();
 
@@ -99,6 +152,7 @@ export async function runMigrations(db: Kysely<Database>) {
   await addColumnIfNotExists(db, 'chats', 'welcome_message', 'TEXT');
   await addColumnIfNotExists(db, 'chats', 'member_count', 'INTEGER DEFAULT 0');
   await addColumnIfNotExists(db, 'chats', 'last_activity_at', 'TEXT');
+  await addColumnIfNotExists(db, 'chats', 'workspace_id', 'INTEGER');
 
   // === Grup Moderasyon ve Topluluk Yönetimi ===
   // Moderation settings per chat
@@ -106,6 +160,7 @@ export async function runMigrations(db: Kysely<Database>) {
     .createTable('moderation_settings')
     .ifNotExists()
     .addColumn('id', 'integer', (col) => col.primaryKey().autoIncrement())
+    .addColumn('workspace_id', 'integer') // TENANT
     .addColumn('chat_id', 'text', (col) => col.notNull().unique())
     .addColumn('enabled', 'integer', (col) => col.notNull().defaultTo(1))
     .addColumn('rules_text', 'text')
@@ -123,12 +178,14 @@ export async function runMigrations(db: Kysely<Database>) {
   // Ensure columns exist (for existing DBs)
   await addColumnIfNotExists(db, 'moderation_settings', 'ai_moderation_enabled', 'INTEGER DEFAULT 0');
   await addColumnIfNotExists(db, 'moderation_settings', 'captcha_enabled', 'INTEGER DEFAULT 0');
+  await addColumnIfNotExists(db, 'moderation_settings', 'workspace_id', 'INTEGER');
 
   // Blacklist words
   await db.schema
     .createTable('blacklist_words')
     .ifNotExists()
     .addColumn('id', 'integer', (col) => col.primaryKey().autoIncrement())
+    .addColumn('workspace_id', 'integer') // TENANT
     .addColumn('chat_id', 'text', (col) => col.notNull())
     .addColumn('word', 'text', (col) => col.notNull())
     .addColumn('created_at', 'text', (col) => col.notNull().defaultTo('CURRENT_TIMESTAMP'))
@@ -139,6 +196,7 @@ export async function runMigrations(db: Kysely<Database>) {
     .createTable('moderation_logs')
     .ifNotExists()
     .addColumn('id', 'integer', (col) => col.primaryKey().autoIncrement())
+    .addColumn('workspace_id', 'integer') // TENANT
     .addColumn('chat_id', 'text', (col) => col.notNull())
     .addColumn('user_id', 'text')
     .addColumn('username', 'text')
@@ -171,6 +229,7 @@ export async function runMigrations(db: Kysely<Database>) {
     .createTable('scheduled_posts')
     .ifNotExists()
     .addColumn('id', 'integer', (col) => col.primaryKey().autoIncrement())
+    .addColumn('workspace_id', 'integer') // TENANT
     .addColumn('chat_id', 'text', (col) => col.notNull())
     .addColumn('content', 'text', (col) => col.notNull())
     .addColumn('parse_mode', 'text')
@@ -183,18 +242,20 @@ export async function runMigrations(db: Kysely<Database>) {
     .addColumn('created_at', 'text', (col) => col.notNull().defaultTo('CURRENT_TIMESTAMP'))
     .execute();
 
-  // Subscriptions for payments
+  // Subscriptions for payments (tenant bazlı)
   await db.schema
     .createTable('subscriptions')
     .ifNotExists()
     .addColumn('id', 'integer', (col) => col.primaryKey().autoIncrement())
+    .addColumn('workspace_id', 'integer') // TENANT
     .addColumn('user_id', 'text', (col) => col.notNull())
-    .addColumn('chat_id', 'text')
-    .addColumn('plan', 'text')
+    .addColumn('plan_id', 'integer')
+    .addColumn('plan_slug', 'text')
     .addColumn('status', 'text', (col) => col.notNull().defaultTo('active'))
     .addColumn('expires_at', 'text')
     .addColumn('stripe_id', 'text')
     .addColumn('telegram_payment_charge_id', 'text')
+    .addColumn('trial_ends_at', 'text')
     .addColumn('created_at', 'text', (col) => col.notNull().defaultTo('CURRENT_TIMESTAMP'))
     .execute();
 
@@ -203,6 +264,7 @@ export async function runMigrations(db: Kysely<Database>) {
     .createTable('audit_logs')
     .ifNotExists()
     .addColumn('id', 'integer', (col) => col.primaryKey().autoIncrement())
+    .addColumn('workspace_id', 'integer') // TENANT
     .addColumn('user_id', 'integer')
     .addColumn('username', 'text')
     .addColumn('action', 'text', (col) => col.notNull())
@@ -226,6 +288,7 @@ export async function runMigrations(db: Kysely<Database>) {
     .createTable('chat_events')
     .ifNotExists()
     .addColumn('id', 'integer', (col) => col.primaryKey().autoIncrement())
+    .addColumn('workspace_id', 'integer') // TENANT
     .addColumn('chat_id', 'text', (col) => col.notNull())
     .addColumn('event_type', 'text', (col) => col.notNull()) // join, leave, message, moderation
     .addColumn('user_id', 'text')
@@ -238,6 +301,7 @@ export async function runMigrations(db: Kysely<Database>) {
     .createTable('captcha_sessions')
     .ifNotExists()
     .addColumn('id', 'integer', (col) => col.primaryKey().autoIncrement())
+    .addColumn('workspace_id', 'integer') // TENANT
     .addColumn('chat_id', 'text', (col) => col.notNull())
     .addColumn('user_id', 'text', (col) => col.notNull())
     .addColumn('code', 'text', (col) => col.notNull())
@@ -262,6 +326,7 @@ export async function runMigrations(db: Kysely<Database>) {
     .createTable('custom_commands')
     .ifNotExists()
     .addColumn('id', 'integer', (col) => col.primaryKey().autoIncrement())
+    .addColumn('workspace_id', 'integer') // TENANT
     .addColumn('command', 'text', (col) => col.notNull().unique())
     .addColumn('response', 'text', (col) => col.notNull())
     .addColumn('is_active', 'integer', (col) => col.notNull().defaultTo(1))
@@ -270,6 +335,7 @@ export async function runMigrations(db: Kysely<Database>) {
 
   // Ensure is_active exists for existing databases
   await addColumnIfNotExists(db, 'custom_commands', 'is_active', 'INTEGER DEFAULT 1');
+  await addColumnIfNotExists(db, 'custom_commands', 'workspace_id', 'INTEGER');
 
   // Indexes
   await db.schema
@@ -286,6 +352,13 @@ export async function runMigrations(db: Kysely<Database>) {
     .columns(['chat_id', 'timestamp'])
     .execute();
 
+  await db.schema
+    .createIndex('idx_events_workspace')
+    .ifNotExists()
+    .on('chat_events')
+    .column('workspace_id')
+    .execute();
+
   // === Yeni Özellikler için Tablolar ===
 
   // Auto-reply rules (Otomatik Yanıtlayıcı)
@@ -293,6 +366,7 @@ export async function runMigrations(db: Kysely<Database>) {
     .createTable('auto_replies')
     .ifNotExists()
     .addColumn('id', 'integer', (col) => col.primaryKey().autoIncrement())
+    .addColumn('workspace_id', 'integer') // TENANT
     .addColumn('chat_id', 'text', (col) => col.notNull())
     .addColumn('trigger', 'text', (col) => col.notNull())
     .addColumn('response', 'text', (col) => col.notNull())
@@ -316,6 +390,7 @@ export async function runMigrations(db: Kysely<Database>) {
     .createTable('chat_admins')
     .ifNotExists()
     .addColumn('id', 'integer', (col) => col.primaryKey().autoIncrement())
+    .addColumn('workspace_id', 'integer') // TENANT
     .addColumn('chat_id', 'text', (col) => col.notNull())
     .addColumn('user_id', 'text', (col) => col.notNull())
     .addColumn('username', 'text')
@@ -329,6 +404,7 @@ export async function runMigrations(db: Kysely<Database>) {
     .createTable('deleted_messages')
     .ifNotExists()
     .addColumn('id', 'integer', (col) => col.primaryKey().autoIncrement())
+    .addColumn('workspace_id', 'integer') // TENANT
     .addColumn('chat_id', 'text', (col) => col.notNull())
     .addColumn('user_id', 'text')
     .addColumn('username', 'text')
@@ -341,6 +417,7 @@ export async function runMigrations(db: Kysely<Database>) {
     .createTable('edited_messages')
     .ifNotExists()
     .addColumn('id', 'integer', (col) => col.primaryKey().autoIncrement())
+    .addColumn('workspace_id', 'integer') // TENANT
     .addColumn('chat_id', 'text', (col) => col.notNull())
     .addColumn('user_id', 'text')
     .addColumn('username', 'text')
@@ -355,6 +432,7 @@ export async function runMigrations(db: Kysely<Database>) {
 
   // Add role column to panel_users for RBAC
   await addColumnIfNotExists(db, 'panel_users', 'role', 'TEXT DEFAULT "user"');
+  await addColumnIfNotExists(db, 'panel_users', 'workspace_id', 'INTEGER');
 
   // Indexes for new tables
   await db.schema
@@ -378,7 +456,95 @@ export async function runMigrations(db: Kysely<Database>) {
     .column('chat_id')
     .execute();
 
+  // Workspace indexes
+  await db.schema
+    .createIndex('idx_workspace_slug')
+    .ifNotExists()
+    .on('workspaces')
+    .column('slug')
+    .execute();
+
+  await db.schema
+    .createIndex('idx_subscriptions_workspace')
+    .ifNotExists()
+    .on('subscriptions')
+    .column('workspace_id')
+    .execute();
+
+  await db.schema
+    .createIndex('idx_bot_config_workspace')
+    .ifNotExists()
+    .on('bot_config')
+    .column('workspace_id')
+    .execute();
+
   console.log('[DB] Tables ensured (migrations applied)');
+}
+
+async function seedDefaultPlans(db: Kysely<Database>) {
+  const existingPlans = await db.selectFrom('subscription_plans')
+    .select(db.fn.count<number>('id').as('count'))
+    .executeTakeFirst();
+
+  if (Number(existingPlans?.count || 0) > 0) {
+    console.log('[DB] Plans already seeded, skipping.');
+    return;
+  }
+
+  const plans = [
+    {
+      name: 'Free',
+      slug: 'free',
+      description: 'Başlangıç seviyesi, tek bot ve sınırlı özellikler',
+      price_monthly: 0,
+      price_yearly: 0,
+      max_bots: 1,
+      max_chats_per_bot: 5,
+      max_team_members: 1,
+      features: JSON.stringify(['basic_moderation', 'activity_logs', 'welcome_messages']),
+      is_active: 1,
+    },
+    {
+      name: 'Pro',
+      slug: 'pro',
+      description: 'Profesyonel kullanıcılar için, gelişmiş özellikler',
+      price_monthly: 29,
+      price_yearly: 290,
+      max_bots: 3,
+      max_chats_per_bot: 50,
+      max_team_members: 5,
+      features: JSON.stringify([
+        'basic_moderation', 'activity_logs', 'welcome_messages',
+        'advanced_moderation', 'scheduler', 'captcha',
+        'custom_commands', 'auto_reply', 'analytics',
+        'team_management', 'api_access'
+      ]),
+      is_active: 1,
+    },
+    {
+      name: 'Enterprise',
+      slug: 'enterprise',
+      description: 'Büyük ölçekli işletmeler için sınırsız özellikler',
+      price_monthly: 99,
+      price_yearly: 990,
+      max_bots: 10,
+      max_chats_per_bot: 500,
+      max_team_members: 50,
+      features: JSON.stringify([
+        'basic_moderation', 'activity_logs', 'welcome_messages',
+        'advanced_moderation', 'scheduler', 'captcha',
+        'custom_commands', 'auto_reply', 'analytics',
+        'team_management', 'api_access', 'white_label',
+        'priority_support', 'custom_integrations'
+      ]),
+      is_active: 1,
+    },
+  ];
+
+  for (const plan of plans) {
+    await db.insertInto('subscription_plans').values(plan).execute();
+  }
+  console.log('[DB] Default subscription plans seeded.');
 }
 
 /**

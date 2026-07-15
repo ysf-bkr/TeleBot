@@ -3,7 +3,6 @@ import { Navigate, Route, Routes, useLocation, useNavigate } from 'react-router-
 import { io } from 'socket.io-client';
 import { Toaster, toast } from 'sonner';
 import { i18n } from './lib/i18n';
-import { ShieldAlert } from 'lucide-react';
 
 // Shared
 import { auth as authApi, chats as chatsApi, logs as logsApi, setAuthToken, settings as settingsApi } from './lib/api';
@@ -11,10 +10,9 @@ import { BotStatus, Chat, Log, User } from './types';
 
 import { Header } from './components/layout/Header';
 import { Sidebar } from './components/layout/Sidebar';
-import { Card } from './components/ui/Card';
-import { Button } from './components/ui/Button';
 
 // Views
+import { AdminPanel } from './pages/admin/AdminPanel';
 import { AnalyticsView } from './pages/analytics/AnalyticsView';
 import { ArticlesView } from './pages/articles/ArticlesView';
 import { AuditLogsView } from './pages/audit/AuditLogsView';
@@ -35,8 +33,8 @@ import OnboardingView from './pages/onboarding/OnboardingView';
 import { SubscriptionsView } from './pages/payments/SubscriptionsView';
 import { SchedulerView } from './pages/scheduler/SchedulerView';
 import { SettingsView } from './pages/settings/SettingsView';
-import { TeamView } from './pages/team/TeamView';
 import SetupView from './pages/setup/SetupView';
+import { TeamView } from './pages/team/TeamView';
 
 // Panda
 import { css } from '../styled-system/css';
@@ -59,8 +57,6 @@ function App() {
   const [newToken, setNewToken] = useState('');
   const [socket, setSocket] = useState<any>(null);
   const [isSetup, setIsSetup] = useState<boolean | null>(null);
-  const [licenseError, setLicenseError] = useState<string | null>(null);
-  // i18n reaktivite için - dil değişince state güncellenir, tüm component'ler yeniden render olur
   const [, setLangVersion] = useState(0);
 
   useEffect(() => {
@@ -76,7 +72,6 @@ function App() {
     return () => window.removeEventListener('auth_logout', handleAuthLogout);
   }, []);
 
-  // Fetch Setup status
   useEffect(() => {
     fetch('/api/setup/status')
       .then(res => res.json())
@@ -84,17 +79,8 @@ function App() {
         setIsSetup(data.configured);
       })
       .catch(() => {
-        setIsSetup(true); // default to true on failure so we don't block login
+        setIsSetup(true);
       });
-  }, []);
-
-  // Listen for License Blocked events
-  useEffect(() => {
-    const handleLicenseBlocked = (e: any) => {
-      setLicenseError(e.detail || 'License verification failed.');
-    };
-    window.addEventListener('license_blocked', handleLicenseBlocked);
-    return () => window.removeEventListener('license_blocked', handleLicenseBlocked);
   }, []);
 
   useEffect(() => {
@@ -221,44 +207,11 @@ function App() {
   const goTo = (path: string) => { navigate(path); };
 
   const showOnboarding = isLoggedIn && !localStorage.getItem('onboarding_done');
+  const isSuperAdmin = user?.role === 'super_admin';
 
   return (
     <>
       <Toaster theme={theme as any} richColors position="bottom-right" />
-      {licenseError && (
-        <div className={css({
-          position: 'fixed',
-          inset: 0,
-          zIndex: 9999,
-          bg: 'rgba(9, 13, 22, 0.85)',
-          backdropFilter: 'blur(8px)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          p: '4'
-        })}>
-          <Card className={css({ w: 'full', maxW: '500px', p: '8', textAlign: 'center' })}>
-            <div className={css({
-              w: '16', h: '16', borderRadius: 'full', bg: 'rgba(239, 68, 68, 0.15)',
-              color: 'primary', display: 'flex', alignItems: 'center', justifyContent: 'center',
-              mx: 'auto', mb: '4'
-            })}>
-              <ShieldAlert size={32} />
-            </div>
-             <h2 className={css({ fontSize: 'xl', fontWeight: '800', color: 'textMain', mb: '2' })}>
-              {i18n.t('license.blocked_title')}
-            </h2>
-            <p className={css({ fontSize: 'sm', color: 'textMuted', mb: '6' })}>
-              {licenseError}
-            </p>
-            <div className={css({ display: 'flex', gap: '3', justifyContent: 'center' })}>
-              <Button onClick={() => { setLicenseError(null); navigate('/setup'); }} className={css({ fontWeight: '700' })}>
-                {i18n.t('license.change_btn')}
-              </Button>
-            </div>
-          </Card>
-        </div>
-      )}
       <Routes>
         <Route path="/" element={
           isLoggedIn ? (
@@ -296,6 +249,7 @@ function App() {
                     <Route path="/subscriptions" element={<SubscriptionsView />} />
                     <Route path="/user-profile" element={<UserProfileView />} />
                     <Route path="/webhook-test" element={<WebhookTestView />} />
+                    {isSuperAdmin && <Route path="/admin" element={<AdminPanel />} />}
                     <Route path="*" element={<NotFoundView />} />
                   </Routes>
                 </main>

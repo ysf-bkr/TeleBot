@@ -1,19 +1,17 @@
-import React, { useState, useEffect } from 'react';
+import { ArrowLeft, ArrowRight, Bot, Check, KeyRound, Languages, Lock, Mail, Moon, Sun } from 'lucide-react';
+import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import { css } from '../../../styled-system/css';
-import { stack, flex } from '../../../styled-system/patterns';
+import { flex, stack } from '../../../styled-system/patterns';
 import { Button } from '../../components/ui/Button';
 import { Card } from '../../components/ui/Card';
 import { Input } from '../../components/ui/Input';
 import { i18n } from '../../lib/i18n';
-import { Languages, Moon, Sun, Shield, Lock, Mail, Key, KeyRound, Bot, Check, ArrowRight, ArrowLeft } from 'lucide-react';
 
 export default function SetupView() {
   const navigate = useNavigate();
   const [currentStep, setCurrentStep] = useState(1);
-  const [licenseTypeChoice, setLicenseTypeChoice] = useState<'license' | 'trial'>('trial');
-  const [licenseKey, setLicenseKey] = useState('');
   const [jwtSecret, setJwtSecret] = useState('');
   const [adminEmail, setAdminEmail] = useState('');
   const [adminPassword, setAdminPassword] = useState('');
@@ -68,15 +66,12 @@ export default function SetupView() {
 
   const isStepValid = () => {
     if (currentStep === 1) {
-      return licenseTypeChoice === 'trial' || licenseKey.trim().length > 0;
-    }
-    if (currentStep === 2) {
       return jwtSecret.trim().length >= 16;
     }
-    if (currentStep === 3) {
+    if (currentStep === 2) {
       return adminEmail.trim().includes('@') && adminPassword.length >= 6;
     }
-    if (currentStep === 4) {
+    if (currentStep === 3) {
       return botToken.trim().includes(':') && botToken.trim().length > 10;
     }
     return true;
@@ -101,12 +96,10 @@ export default function SetupView() {
     if (!isStepValid()) return;
     setLoading(true);
     try {
-      const finalLicense = licenseTypeChoice === 'trial' ? 'TRIAL' : licenseKey.trim();
       const response = await fetch('/api/setup/configure', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          licenseKey: finalLicense,
           jwtSecret,
           adminEmail,
           adminPassword,
@@ -133,43 +126,22 @@ export default function SetupView() {
 
   const getStepTitle = () => {
     switch (currentStep) {
-      case 1: return i18n.t('setup.step_license');
-      case 2: return i18n.t('setup.step_security');
-      case 3: return i18n.t('setup.step_admin');
-      case 4: return i18n.t('setup.step_bot');
-      case 5: return i18n.t('setup.step_confirm');
+      case 1: return i18n.t('setup.step_security');
+      case 2: return i18n.t('setup.step_admin');
+      case 3: return i18n.t('setup.step_bot');
+      case 4: return i18n.t('setup.step_confirm');
       default: return '';
     }
   };
 
-  const choiceStyle = (active: boolean) => css({
-    flex: 1,
-    p: '5',
-    borderRadius: 'xl',
-    border: active ? '2px solid token(colors.primary)' : '1px solid token(colors.borderMain)',
-    bg: active ? 'rgba(239, 68, 68, 0.04)' : 'bgCanvas',
-    cursor: 'pointer',
-    transition: 'all 0.2s ease',
-    display: 'flex',
-    flexDirection: 'column',
-    alignItems: 'center',
-    textAlign: 'center',
-    gap: '3',
-    position: 'relative',
-    _hover: {
-      borderColor: active ? 'primary' : 'textMuted',
-      bg: active ? 'rgba(239, 68, 68, 0.04)' : 'bgButtonSecondary'
-    }
-  });
-
   return (
-    <div className={css({ 
-      minH: '100dvh', 
-      display: 'flex', 
+    <div className={css({
+      minH: '100dvh',
+      display: 'flex',
       flexDirection: 'column',
-      justifyContent: 'center', 
-      alignItems: 'center', 
-      bg: 'bgCanvas', 
+      justifyContent: 'center',
+      alignItems: 'center',
+      bg: 'bgCanvas',
       p: '4',
       position: 'relative',
       overflowX: 'hidden'
@@ -235,13 +207,13 @@ export default function SetupView() {
 
       {/* Onboarding Steps Progress Tracker */}
       <div className={flex({ gap: '1.5', mb: '6', w: 'full', maxW: '480px', justify: 'space-between', align: 'center', px: '3', zIndex: 1 })}>
-        {[1, 2, 3, 4, 5].map((step) => (
+        {[1, 2, 3, 4].map((step) => (
           <React.Fragment key={step}>
-            <div className={flex({ 
-              w: '9', h: '9', 
-              borderRadius: 'full', 
-              align: 'center', 
-              justify: 'center', 
+            <div className={flex({
+              w: '9', h: '9',
+              borderRadius: 'full',
+              align: 'center',
+              justify: 'center',
               fontWeight: '700',
               fontSize: 'xs',
               bg: currentStep === step ? 'primary' : currentStep > step ? 'rgba(16, 185, 129, 0.15)' : 'bgButtonSecondary',
@@ -251,10 +223,10 @@ export default function SetupView() {
             })}>
               {currentStep > step ? <Check size={14} /> : step}
             </div>
-            {step < 5 && (
-              <div className={css({ 
-                flex: 1, 
-                h: '0.5', 
+            {step < 4 && (
+              <div className={css({
+                flex: 1,
+                h: '0.5',
                 bg: currentStep > step ? 'rgb(16, 185, 129)' : 'borderMain',
                 transition: 'all 0.3s ease'
               })} />
@@ -266,11 +238,11 @@ export default function SetupView() {
       {/* Main Wizard Form Card */}
       <Card className={css({ w: 'full', maxW: '480px', zIndex: 1, position: 'relative', overflow: 'hidden' })}>
         <div className={stack({ gap: '6' })}>
-          
+
           {/* Step Header */}
           <div className={flex({ justify: 'space-between', align: 'center', borderBottom: '1px solid token(colors.borderMain)', pb: '3' })}>
             <span className={css({ fontSize: 'xs', fontWeight: '700', color: 'primary', textTransform: 'uppercase', letterSpacing: 'wider' })}>
-              Step {currentStep} of 5
+              Step {currentStep} of 4
             </span>
             <span className={css({ fontSize: 'sm', fontWeight: '700', color: 'textMain' })}>
               {getStepTitle()}
@@ -278,53 +250,9 @@ export default function SetupView() {
           </div>
 
           <form onSubmit={handleSubmit} className={stack({ gap: '5' })}>
-            
-            {/* STEP 1: LICENSE OPTION */}
+
+            {/* STEP 1: SECURITY SETTINGS */}
             {currentStep === 1 && (
-              <div className={stack({ gap: '4' })}>
-                <div className={flex({ gap: '3', w: 'full' })}>
-                  <div 
-                    onClick={() => setLicenseTypeChoice('trial')} 
-                    className={choiceStyle(licenseTypeChoice === 'trial')}
-                  >
-                    <Shield size={24} className={css({ color: licenseTypeChoice === 'trial' ? 'primary' : 'textMuted' })} />
-                    <div>
-                      <div className={css({ fontSize: 'sm', fontWeight: '700', color: 'textMain' })}>{i18n.t('setup.lic_option_trial')}</div>
-                      <div className={css({ fontSize: '10px', color: 'textMuted', mt: '1' })}>7 günlük deneme modunu ücretsiz başlatın.</div>
-                    </div>
-                  </div>
-
-                  <div 
-                    onClick={() => setLicenseTypeChoice('license')} 
-                    className={choiceStyle(licenseTypeChoice === 'license')}
-                  >
-                    <Key size={24} className={css({ color: licenseTypeChoice === 'license' ? 'primary' : 'textMuted' })} />
-                    <div>
-                      <div className={css({ fontSize: 'sm', fontWeight: '700', color: 'textMain' })}>{i18n.t('setup.lic_option_full')}</div>
-                      <div className={css({ fontSize: '10px', color: 'textMuted', mt: '1' })}>Satın aldığınız lisans anahtarını girin.</div>
-                    </div>
-                  </div>
-                </div>
-
-                {licenseTypeChoice === 'license' && (
-                  <div className={stack({ gap: '1.5', mt: '2' })}>
-                    <label className={css({ fontSize: 'xs', fontWeight: '700', color: 'textMain', textTransform: 'uppercase' })}>
-                      {i18n.t('setup.license_key')}
-                    </label>
-                    <Input
-                      type="text"
-                      required
-                      value={licenseKey}
-                      onChange={e => setLicenseKey(e.target.value)}
-                      placeholder="TELE-XXXXX-XXXXX-XXXXX-XXXXX"
-                    />
-                  </div>
-                )}
-              </div>
-            )}
-
-            {/* STEP 2: SECURITY SETTINGS */}
-            {currentStep === 2 && (
               <div className={stack({ gap: '4' })}>
                 <div className={flex({ gap: '3', p: '3', bg: 'rgba(239, 68, 68, 0.04)', borderRadius: 'lg', border: '1px dashed rgba(239, 68, 68, 0.15)', fontSize: 'xs', color: 'textMuted' })}>
                   <Lock size={20} className={css({ color: 'primary', flexShrink: 0 })} />
@@ -334,8 +262,8 @@ export default function SetupView() {
                 <div className={stack({ gap: '1.5' })}>
                   <label className={flex({ align: 'center', justify: 'space-between', fontSize: 'xs', fontWeight: '700', color: 'textMain', textTransform: 'uppercase' })}>
                     <span>{i18n.t('setup.jwt_secret')}</span>
-                    <button 
-                      type="button" 
+                    <button
+                      type="button"
                       onClick={generateRandomSecret}
                       className={css({ color: 'primary', fontSize: '10px', cursor: 'pointer', textTransform: 'none', _hover: { textDecoration: 'underline' } })}
                     >
@@ -353,8 +281,8 @@ export default function SetupView() {
               </div>
             )}
 
-            {/* STEP 3: ADMINISTRATOR ACCOUNT */}
-            {currentStep === 3 && (
+            {/* STEP 2: ADMINISTRATOR ACCOUNT */}
+            {currentStep === 2 && (
               <div className={stack({ gap: '4' })}>
                 <div className={stack({ gap: '1.5' })}>
                   <label className={flex({ align: 'center', gap: '2', fontSize: 'xs', fontWeight: '700', color: 'textMain', textTransform: 'uppercase' })}>
@@ -386,8 +314,8 @@ export default function SetupView() {
               </div>
             )}
 
-            {/* STEP 4: TELEGRAM BOT CONFIGURATION */}
-            {currentStep === 4 && (
+            {/* STEP 3: TELEGRAM BOT CONFIGURATION */}
+            {currentStep === 3 && (
               <div className={stack({ gap: '4' })}>
                 <div className={stack({ gap: '1.5' })}>
                   <label className={flex({ align: 'center', gap: '2', fontSize: 'xs', fontWeight: '700', color: 'textMain', textTransform: 'uppercase' })}>
@@ -418,20 +346,14 @@ export default function SetupView() {
               </div>
             )}
 
-            {/* STEP 5: SETUP SUMMARY */}
-            {currentStep === 5 && (
+            {/* STEP 4: SETUP SUMMARY */}
+            {currentStep === 4 && (
               <div className={stack({ gap: '4' })}>
                 <p className={css({ fontSize: 'xs', color: 'textMuted' })}>
                   {i18n.t('setup.summary_desc')}
                 </p>
 
                 <div className={stack({ gap: '2.5', p: '4', bg: 'bgButtonSecondary', borderRadius: 'xl', border: '1px solid token(colors.borderMain)' })}>
-                  <div className={flex({ justify: 'space-between', fontSize: 'xs' })}>
-                    <span className={css({ color: 'textMuted' })}>{i18n.t('setup.license_key')}:</span>
-                    <span className={css({ fontWeight: '700', color: 'textMain' })}>
-                      {licenseTypeChoice === 'trial' ? '7-Day Trial Mode' : (licenseKey.slice(0, 10) + '...')}
-                    </span>
-                  </div>
                   <div className={flex({ justify: 'space-between', fontSize: 'xs' })}>
                     <span className={css({ color: 'textMuted' })}>{i18n.t('setup.admin_email')}:</span>
                     <span className={css({ fontWeight: '700', color: 'textMain' })}>{adminEmail}</span>
@@ -470,8 +392,8 @@ export default function SetupView() {
                   {i18n.t('setup.back')}
                 </button>
               )}
-              
-              {currentStep < 5 ? (
+
+              {currentStep < 4 ? (
                 <button
                   type="button"
                   onClick={handleNext}
@@ -492,9 +414,9 @@ export default function SetupView() {
                   <ArrowRight size={16} />
                 </button>
               ) : (
-                <Button 
-                  type="submit" 
-                  disabled={loading || !isStepValid()} 
+                <Button
+                  type="submit"
+                  disabled={loading || !isStepValid()}
                   className={css({ flex: 1, h: '42px', fontWeight: '700', borderRadius: 'xl' })}
                 >
                   {loading ? i18n.t('setup.loading') : i18n.t('setup.submit')}

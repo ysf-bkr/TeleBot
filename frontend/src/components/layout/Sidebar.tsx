@@ -39,6 +39,12 @@ const navGroups = [
       { to: '/user-profile', labelKey: 'nav.user_profile', icon: Search },
       { to: '/webhook-test', labelKey: 'nav.webhook_test', icon: Globe },
     ]
+  },
+  {
+    titleKey: 'nav.administration',
+    items: [
+      { to: '/admin', labelKey: 'nav.admin_panel', icon: Shield },
+    ]
   }
 ];
 
@@ -68,7 +74,15 @@ export function Sidebar({ isOpen, onClose, user }: SidebarProps) {
 
       {/* Nav Menu */}
       <nav className={stack({ p: '3', gap: '5', flex: 1 })}>
-        {navGroups.map((group, gIdx) => (
+        {navGroups
+          .filter(group => {
+            // Admin panel sadece super_admin için göster
+            if (group.titleKey === 'nav.administration') {
+              return user?.role === 'super_admin';
+            }
+            return true;
+          })
+          .map((group, gIdx) => (
           <div key={gIdx} className={stack({ gap: '1' })}>
             <div className={css({
               px: '3',

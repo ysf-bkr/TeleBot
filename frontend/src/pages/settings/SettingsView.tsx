@@ -1,13 +1,13 @@
-import { Info, KeyRound, MessageSquare, RefreshCw, RotateCcw, Save, Shield, Globe, Activity, CheckCircle2, AlertTriangle, Sparkles } from 'lucide-react';
+import { Info, KeyRound, MessageSquare, RefreshCw, RotateCcw, Save, Sparkles } from 'lucide-react';
 import React from 'react';
 import { toast } from 'sonner';
-import { i18n } from '../../lib/i18n';
 import { css } from '../../../styled-system/css';
 import { flex, stack } from '../../../styled-system/patterns';
 import { Button } from '../../components/ui/Button';
 import { Card } from '../../components/ui/Card';
 import { Input, Textarea } from '../../components/ui/Input';
 import { PageHeader } from '../../components/ui/PageHeader';
+import { i18n } from '../../lib/i18n';
 
 const DEFAULT_WELCOME = '👋 Hoş geldin {first_name}!\nGrubumuza katıldığın için teşekkürler.\n\n{group_title}';
 const VARIABLE_OPTIONS = ['{first_name}', '{last_name}', '{username}', '{group_title}'];
@@ -37,12 +37,7 @@ export function SettingsView({
 }: SettingsViewProps) {
   const [profileName, setProfileName] = React.useState('');
   const [profileDesc, setProfileDesc] = React.useState('');
-  const [activeTab, setActiveTab] = React.useState<'bot' | 'welcome' | 'license' | 'ai'>('bot');
-
-  // Licensing management local state
-  const [licenseData, setLicenseData] = React.useState<any>(null);
-  const [licenseKeyInput, setLicenseKeyInput] = React.useState('');
-  const [licLoading, setLicLoading] = React.useState(false);
+  const [activeTab, setActiveTab] = React.useState<'bot' | 'welcome' | 'ai'>('bot');
 
   // AI Moderation configuration local state
   const [aiProvider, setAiProvider] = React.useState('gemini');
@@ -104,58 +99,6 @@ Analiz edilecek mesaj: "{text}"`);
     }
   };
 
-  const fetchLicenseData = async () => {
-    try {
-      const res = await fetch('/api/settings/license');
-      const data = await res.json();
-      setLicenseData(data);
-      setLicenseKeyInput(data.licenseKey || '');
-    } catch (_) {}
-  };
-
-  React.useEffect(() => {
-    if (activeTab === 'license') {
-      fetchLicenseData();
-    }
-  }, [activeTab]);
-
-  const handleActivateLicense = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLicLoading(true);
-    try {
-      const response = await fetch('/api/settings/license', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ licenseKey: licenseKeyInput })
-      });
-      const data = await response.json();
-      if (!response.ok) throw new Error(data.error || i18n.t('setup.error'));
-      toast.success(i18n.t('settings.license_activate_success'));
-      fetchLicenseData();
-    } catch (err: any) {
-      toast.error(err.message || i18n.t('setup.error'));
-    } finally {
-      setLicLoading(false);
-    }
-  };
-
-  const handleDeactivateLicense = async () => {
-    if (!confirm(i18n.t('settings.license_deactivate_confirm'))) return;
-    setLicLoading(true);
-    try {
-      const response = await fetch('/api/settings/license/deactivate', {
-        method: 'POST'
-      });
-      const data = await response.json();
-      toast.success(data.message || i18n.t('settings.license_deactivate_success'));
-      fetchLicenseData();
-    } catch (err: any) {
-      toast.error(err.message || i18n.t('setup.error'));
-    } finally {
-      setLicLoading(false);
-    }
-  };
-
   React.useEffect(() => {
     if (botInfo?.first_name) setProfileName(botInfo.first_name);
   }, [botInfo]);
@@ -204,7 +147,6 @@ Analiz edilecek mesaj: "{text}"`);
           { id: 'bot', label: 'Bot Yapılandırması & Profil', icon: KeyRound },
           { id: 'welcome', label: 'Hoş Geldin & Kurallar', icon: MessageSquare },
           { id: 'ai', label: i18n.t('settings.ai_tab'), icon: Sparkles },
-          { id: 'license', label: 'Lisans & Aktivasyon', icon: Shield },
         ].map((tab) => {
           const Icon = tab.icon;
           const isActive = activeTab === tab.id;
@@ -321,106 +263,6 @@ Analiz edilecek mesaj: "{text}"`);
           </Card>
         )}
 
-        {activeTab === 'license' && licenseData && (
-          <Card>
-            <div className={flex({ align: 'center', gap: '2', mb: '6' })}>
-              <div className={css({ p: '1.5', borderRadius: 'lg', bg: 'bgButtonSecondary', color: 'primary' })}><Shield size={18} /></div>
-              <div className={css({ fontWeight: '600', color: 'textMain' })}>{i18n.t('settings.license_tab_title')}</div>
-            </div>
-
-            <div className={stack({ gap: '6' })}>
-              {/* License Info Banner */}
-              <div className={flex({ 
-                p: '4', 
-                borderRadius: 'xl', 
-                bg: licenseData.status?.isValid ? 'rgba(34, 197, 94, 0.1)' : 'rgba(239, 68, 68, 0.1)',
-                border: '1px solid',
-                borderColor: licenseData.status?.isValid ? 'rgba(34, 197, 94, 0.2)' : 'rgba(239, 68, 68, 0.2)',
-                gap: '3',
-                align: 'center'
-              })}>
-                {licenseData.status?.isValid ? (
-                  <CheckCircle2 className={css({ color: 'green.500', flexShrink: 0 })} size={24} />
-                ) : (
-                  <AlertTriangle className={css({ color: 'red.500', flexShrink: 0 })} size={24} />
-                )}
-                <div>
-                  <div className={css({ fontWeight: '700', color: 'textMain', fontSize: 'sm' })}>
-                    {licenseData.status?.isTrial 
-                      ? i18n.t('settings.license_status_trial')
-                      : licenseData.status?.isValid 
-                        ? i18n.t('settings.license_status_valid')
-                        : i18n.t('settings.license_status_invalid')}
-                  </div>
-                  <div className={css({ fontSize: 'xs', color: 'textMuted', mt: '0.5' })}>
-                    {licenseData.status?.isTrial ? (
-                      <>{i18n.t('settings.license_trial_expires').replace('{time}', '')} <strong>{
-                        (() => {
-                          const diff = new Date(licenseData.status.trialExpires).getTime() - Date.now();
-                          if (diff <= 0) return i18n.t('settings.license_time_ended');
-                          const days = Math.floor(diff / (24 * 60 * 60 * 1000));
-                          const hours = Math.floor((diff % (24 * 60 * 60 * 1000)) / (60 * 60 * 1000));
-                          return i18n.t('settings.license_trial_days_hours')
-                            .replace('{days}', days.toString())
-                            .replace('{hours}', hours.toString());
-                        })()
-                      }</strong></>
-                    ) : licenseData.status?.isValid ? (
-                      i18n.t('settings.license_unlocked_desc')
-                    ) : (
-                      i18n.t('settings.license_restricted_desc')
-                    )}
-                  </div>
-                </div>
-              </div>
-
-              {/* Hardware Fingerprint & Domain Info */}
-              <div className={flex({ gap: '4', flexDir: { base: 'column', sm: 'row' } })}>
-                <div className={css({ flex: 1 })}>
-                  <div className={css({ fontSize: 'xs', fontWeight: '700', color: 'textMuted', textTransform: 'uppercase', mb: '1' })}>{i18n.t('settings.license_active_domain')}</div>
-                  <div className={css({ px: '3', py: '2', bg: 'bgCanvas', borderRadius: 'lg', border: '1px solid token(colors.borderMain)', fontSize: 'sm', fontFamily: 'monospace', color: 'textMain' })}>
-                    {licenseData.domain}
-                  </div>
-                </div>
-                <div className={css({ flex: 1 })}>
-                  <div className={css({ fontSize: 'xs', fontWeight: '700', color: 'textMuted', textTransform: 'uppercase', mb: '1' })}>{i18n.t('settings.license_fingerprint')}</div>
-                  <div className={css({ px: '3', py: '2', bg: 'bgCanvas', borderRadius: 'lg', border: '1px solid token(colors.borderMain)', fontSize: 'sm', fontFamily: 'monospace', color: 'textMain' })}>
-                    {licenseData.fingerprint}
-                  </div>
-                </div>
-              </div>
-
-              {/* License Update Form */}
-              <form onSubmit={handleActivateLicense} className={stack({ gap: '3' })}>
-                <div className={css({ fontSize: 'sm', fontWeight: '600', color: 'textMain' })}>{i18n.t('settings.license_new_entry')}</div>
-                <div className={flex({ gap: '3', flexDir: { base: 'column', sm: 'row' } })}>
-                  <Input 
-                    className={css({ fontFamily: 'monospace', flex: 1 })} 
-                    placeholder="TELE-XXXX-XXXX-XXXX-XXXX" 
-                    value={licenseKeyInput} 
-                    onChange={e => setLicenseKeyInput(e.target.value)} 
-                  />
-                  <Button type="submit" disabled={licLoading}>
-                    {i18n.t('settings.license_activate_btn')}
-                  </Button>
-                </div>
-                <div className={css({ fontSize: 'xs', color: 'textMuted' })}>
-                  {i18n.t('settings.license_trial_continue_desc')}
-                </div>
-              </form>
-
-              {/* Deactivate Button */}
-              {licenseData.licenseKey && (
-                <div className={flex({ justify: 'flex-end', borderTop: '1px solid token(colors.borderMain)', pt: '4', mt: '2' })}>
-                  <Button type="button" variant="ghost" onClick={handleDeactivateLicense} disabled={licLoading} className={css({ color: 'primary', _hover: { bg: 'rgba(239, 68, 68, 0.08)' } })}>
-                    {i18n.t('settings.license_deactivate_btn')}
-                  </Button>
-                </div>
-              )}
-            </div>
-          </Card>
-        )}
-
         {activeTab === 'ai' && (
           <Card>
             <div className={flex({ align: 'center', gap: '2', mb: '6' })}>
@@ -449,19 +291,19 @@ Analiz edilecek mesaj: "{text}"`);
               <div className={flex({ gap: '4', flexDir: { base: 'column', sm: 'row' } })}>
                 <div className={css({ flex: 1 })}>
                   <label className={css({ fontSize: 'sm', fontWeight: '600', color: 'textMain', display: 'block', mb: '1.5' })}>{i18n.t('settings.ai_model')}</label>
-                  <Input 
-                    type="text" 
-                    value={aiModel} 
-                    onChange={e => setAiModel(e.target.value)} 
+                  <Input
+                    type="text"
+                    value={aiModel}
+                    onChange={e => setAiModel(e.target.value)}
                     placeholder="e.g. gemini-2.5-flash or gpt-4o-mini"
                   />
                 </div>
                 <div className={css({ flex: 1 })}>
                   <label className={css({ fontSize: 'sm', fontWeight: '600', color: 'textMain', display: 'block', mb: '1.5' })}>{i18n.t('settings.ai_api_key')}</label>
-                  <Input 
-                    type="password" 
-                    value={aiApiKey} 
-                    onChange={e => setAiApiKey(e.target.value)} 
+                  <Input
+                    type="password"
+                    value={aiApiKey}
+                    onChange={e => setAiApiKey(e.target.value)}
                     placeholder={aiProvider === 'local' ? 'Optional for local endpoints' : 'API Key'}
                   />
                 </div>
@@ -471,10 +313,10 @@ Analiz edilecek mesaj: "{text}"`);
               {aiProvider === 'local' && (
                 <div className={stack({ gap: '1.5' })}>
                   <label className={css({ fontSize: 'sm', fontWeight: '600', color: 'textMain' })}>{i18n.t('settings.ai_custom_url')}</label>
-                  <Input 
-                    type="text" 
-                    value={aiCustomUrl} 
-                    onChange={e => setAiCustomUrl(e.target.value)} 
+                  <Input
+                    type="text"
+                    value={aiCustomUrl}
+                    onChange={e => setAiCustomUrl(e.target.value)}
                     placeholder="http://localhost:11434/v1/chat/completions"
                   />
                 </div>
@@ -483,9 +325,9 @@ Analiz edilecek mesaj: "{text}"`);
               {/* System Prompt Template */}
               <div className={stack({ gap: '1.5' })}>
                 <label className={css({ fontSize: 'sm', fontWeight: '600', color: 'textMain' })}>{i18n.t('settings.ai_prompt')}</label>
-                <Textarea 
-                  value={aiPrompt} 
-                  onChange={e => setAiPrompt(e.target.value)} 
+                <Textarea
+                  value={aiPrompt}
+                  onChange={e => setAiPrompt(e.target.value)}
                   rows={6}
                   className={css({ fontFamily: 'monospace', fontSize: 'xs' })}
                 />

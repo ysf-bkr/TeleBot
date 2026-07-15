@@ -44,15 +44,13 @@ async function startServer() {
     request.io = io;
   });
 
-  // License Validation hook for commercial distribution
-  const { validateLicense } = await import('./middleware/license.js');
-  fastify.addHook('onRequest', async (request, reply) => {
-    await validateLicense(request, reply);
-  });
-
   // === AUTH PLUGIN (Fastify native + JWT) ===
   const { default: authPlugin } = await import('./plugins/auth.js');
   await fastify.register(authPlugin);
+
+  // === TENANT MIDDLEWARE ===
+  const { tenantMiddleware } = await import('./middleware/tenant.js');
+  fastify.addHook('onRequest', tenantMiddleware);
 
   // Audit (now user may be populated)
   const { default: auditService } = await import('./modules/audit/audit.service.js');
@@ -96,6 +94,10 @@ async function startServer() {
   await fastify.register(commandsRouters, { prefix: '/api/commands' });
   await fastify.register(paymentsRouters, { prefix: '/api/payments' });
 
+  // SaaS Router (Workspace yönetimi, planlar, admin API)
+  const { default: workspaceRouters } = await import('./modules/saas/workspace.routers.js');
+  await fastify.register(workspaceRouters, { prefix: '/api' });
+
   // Setup Wizard Router
   const { default: setupRouters } = await import('./modules/setup/setup.routers.js');
   await fastify.register(setupRouters, { prefix: '/api/setup' });
@@ -117,16 +119,7 @@ async function startServer() {
   await fastify.listen({ port: Number(PORT), host: '0.0.0.0' });
   console.log(`[FASTIFY] Server running on http://localhost:${PORT}`);
 
-  // Seed + bots
-
-  // Initialize license server status (handles TRIAL auto-activation or heartbeat verification)
-  const { default: licenseService } = await import('./services/license.service.js');
-  await licenseService.initTrialStatus();
-  // Check heartbeat/trial status every 24 hours
-  setInterval(async () => {
-    await licenseService.initTrialStatus();
-  }, 24 * 60 * 60 * 1000);
-
+  // Start Telegram bots
   const { default: botService } = await import('./services/bot.service.js');
   await botService.startAllBots(io as any);
 

@@ -44,10 +44,6 @@ api.interceptors.response.use(
       window.dispatchEvent(new Event('auth_logout'));
       // Let the app handle logout via App state
       toast.error('Oturum süresi doldu. Lütfen tekrar giriş yapın.');
-    } else if (status === 403 && (error.response?.data as any)?.error === 'License Blocked') {
-      const msg = (error.response?.data as any)?.message || 'Lisans doğrulaması başarısız oldu!';
-      window.dispatchEvent(new CustomEvent('license_blocked', { detail: msg }));
-      toast.error(msg);
     } else if (status && status >= 500) {
       toast.error('Sunucu hatası. Lütfen daha sonra tekrar deneyin.');
     } else {
@@ -85,9 +81,6 @@ export const settings = {
   restart: () => api.post('/settings/restart'),
   getBotInfo: () => api.get<BotStatus>('/settings/bot-info'),
   updateProfile: (data: { name?: string; description?: string }) => api.post('/settings/profile', data),
-  getLicense: () => api.get<any>('/settings/license'),
-  activateLicense: (licenseKey: string) => api.post('/settings/license', { licenseKey }),
-  deactivateLicense: () => api.post('/settings/license/deactivate'),
 };
 
 export const chatsApi = {
@@ -206,6 +199,26 @@ export const userProfileApi = {
 // === YENİ: Webhook Test API ===
 export const webhookApi = {
   test: (url: string) => api.post('/moderation/test-webhook', { url }),
+};
+
+// === SAAS: Workspace & Plan API ===
+export const workspaceApi = {
+  getMyWorkspace: () => api.get<any>('/workspace'),
+  updateMyWorkspace: (data: any) => api.patch('/workspace', data),
+  getStats: () => api.get<any>('/workspace/stats'),
+};
+
+export const plansApi = {
+  list: () => api.get<any[]>('/plans'),
+};
+
+export const adminApi = {
+  listWorkspaces: () => api.get<any[]>('/admin/workspaces'),
+  getWorkspace: (id: number) => api.get<any>(`/admin/workspaces/${id}`),
+  createWorkspace: (data: any) => api.post('/admin/workspaces', data),
+  updateWorkspace: (id: number, data: any) => api.patch(`/admin/workspaces/${id}`, data),
+  deleteWorkspace: (id: number) => api.delete(`/admin/workspaces/${id}`),
+  getStats: () => api.get<any>('/admin/stats'),
 };
 
 // Default export for advanced use (rare)

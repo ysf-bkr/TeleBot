@@ -35,6 +35,7 @@ import { SchedulerView } from './pages/scheduler/SchedulerView';
 import { SettingsView } from './pages/settings/SettingsView';
 import SetupView from './pages/setup/SetupView';
 import { TeamView } from './pages/team/TeamView';
+import { WorkspaceView } from './pages/workspace/WorkspaceView';
 
 // Panda
 import { css } from '../styled-system/css';
@@ -249,6 +250,7 @@ function App() {
                     <Route path="/subscriptions" element={<SubscriptionsView />} />
                     <Route path="/user-profile" element={<UserProfileView />} />
                     <Route path="/webhook-test" element={<WebhookTestView />} />
+                    <Route path="/workspace" element={<WorkspaceView />} />
                     {isSuperAdmin && <Route path="/admin" element={<AdminPanel />} />}
                     <Route path="*" element={<NotFoundView />} />
                   </Routes>

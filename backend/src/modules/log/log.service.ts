@@ -11,19 +11,20 @@ interface ActivityLogInput {
   eventType: string;
   messageSent?: boolean;
   messageText?: string | null;
+  workspaceId?: number | null;
 }
 
 class LogService {
-  async getAllLogs(limit = 100): Promise<LogTable[]> {
-    return logRepository.getAllLogs(limit);
+  async getAllLogs(limit = 100, workspaceId?: number): Promise<LogTable[]> {
+    return logRepository.getAllLogs(limit, workspaceId);
   }
 
   async createActivityLog(data: ActivityLogInput) {
     return logRepository.createLog(data);
   }
 
-  async cleanupOldLogs(olderThanDays: number) {
-    return logRepository.deleteOldLogs(olderThanDays);
+  async cleanupOldLogs(olderThanDays: number, workspaceId?: number) {
+    return logRepository.deleteOldLogs(olderThanDays, workspaceId);
   }
 }
 

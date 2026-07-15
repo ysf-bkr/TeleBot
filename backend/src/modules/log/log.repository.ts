@@ -10,16 +10,20 @@ interface CreateLogInput {
   eventType: string;
   messageSent?: boolean;
   messageText?: string | null;
+  workspaceId?: number | null;
 }
 
 class LogRepository {
-  async getAllLogs(limit = 100): Promise<any[]> {
+  async getAllLogs(limit = 100, workspaceId?: number): Promise<any[]> {
     const db = getDb();
-    return db.selectFrom('logs')
+    let query = db.selectFrom('logs')
       .selectAll()
       .orderBy('timestamp', 'desc')
-      .limit(Number(limit))
-      .execute();
+      .limit(Number(limit));
+    if (workspaceId) {
+      query = query.where('workspace_id', '=', workspaceId) as any;
+    }
+    return query.execute();
   }
 
   async createLog(data: CreateLogInput): Promise<any> {
@@ -27,6 +31,7 @@ class LogRepository {
     const now = new Date().toISOString();
     const result = await db.insertInto('logs')
       .values({
+        workspace_id: data.workspaceId || null,
         chat_id: String(data.chatId),
         chat_title: data.chatTitle || null,
         user_id: data.userId ? String(data.userId) : null,
@@ -48,10 +53,14 @@ class LogRepository {
     return null;
   }
 
-  async deleteOldLogs(olderThanDays: number): Promise<void> {
+  async deleteOldLogs(olderThanDays: number, workspaceId?: number): Promise<void> {
     const db = getDb();
     const cutoff = new Date(Date.now() - olderThanDays * 24 * 60 * 60 * 1000).toISOString();
-    await db.deleteFrom('logs').where('timestamp', '<', cutoff).execute();
+    let query = db.deleteFrom('logs').where('timestamp', '<', cutoff) as any;
+    if (workspaceId) {
+      query = query.where('workspace_id', '=', workspaceId);
+    }
+    await query.execute();
   }
 }
 

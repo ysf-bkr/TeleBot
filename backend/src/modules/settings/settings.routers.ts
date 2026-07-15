@@ -30,7 +30,6 @@ function updateEnvFile(updates: Record<string, string>) {
   }
 }
 
-// Helper to map DB config to camelCase API response
 function mapConfig(dbRow: any) {
   if (!dbRow) return null;
   return {
@@ -48,13 +47,18 @@ async function settingsRouters(fastify: FastifyInstance): Promise<void> {
   // GET /api/settings
   fastify.get('/', async (request: any, reply: any) => {
     const db = getDb();
-    let config = await db.selectFrom('bot_config').selectAll().executeTakeFirst();
+    const wsId = request.workspace_id;
+
+    let config = await db.selectFrom('bot_config')
+      .selectAll()
+      .where('workspace_id', '=', wsId || 0)
+      .executeTakeFirst();
 
     if (!config) {
-      // Seed initial default config if not exists
       const now = new Date().toISOString();
       await db.insertInto('bot_config')
         .values({
+          workspace_id: wsId || null,
           welcome_message: '👋 Hoş geldin {first_name}!\nGrubumuza katıldığın için teşekkürler.\n\n{group_title}',
           welcome_enabled: 1,
           parse_mode: 'HTML',
@@ -64,7 +68,7 @@ async function settingsRouters(fastify: FastifyInstance): Promise<void> {
           updated_at: now,
         })
         .execute();
-      config = await db.selectFrom('bot_config').selectAll().executeTakeFirst();
+      config = await db.selectFrom('bot_config').selectAll().where('workspace_id', '=', wsId || 0).executeTakeFirst();
     }
 
     return mapConfig(config);
@@ -73,6 +77,7 @@ async function settingsRouters(fastify: FastifyInstance): Promise<void> {
   // PATCH /api/settings
   fastify.patch('/', async (request: any, reply: any) => {
     const db = getDb();
+    const wsId = request.workspace_id;
     const body = request.body || {};
 
     const updateData: any = {
@@ -85,8 +90,11 @@ async function settingsRouters(fastify: FastifyInstance): Promise<void> {
     if (body.webhookDomain !== undefined) updateData.webhook_domain = body.webhookDomain;
     if (body.settings !== undefined) updateData.settings = typeof body.settings === 'object' ? JSON.stringify(body.settings) : body.settings;
 
-    // Get current config to see if there is one
-    const current = await db.selectFrom('bot_config').select('id').executeTakeFirst();
+    const current = await db.selectFrom('bot_config')
+      .select('id')
+      .where('workspace_id', '=', wsId || 0)
+      .executeTakeFirst();
+
     if (!current) {
       reply.code(400);
       return { error: 'Yapılandırma bulunamadı, önce GET çağırın.' };
@@ -97,7 +105,6 @@ async function settingsRouters(fastify: FastifyInstance): Promise<void> {
       .where('id', '=', current.id)
       .execute();
 
-    // Trigger status update or reload if webhook settings changed
     const updated = await db.selectFrom('bot_config').selectAll().where('id', '=', current.id).executeTakeFirst();
     return mapConfig(updated);
   });
@@ -105,13 +112,18 @@ async function settingsRouters(fastify: FastifyInstance): Promise<void> {
   // POST /api/settings/token
   fastify.post('/token', async (request: any, reply: any) => {
     const db = getDb();
+    const wsId = request.workspace_id;
     const { token } = request.body || {};
     if (!token) {
       reply.code(400);
       return { error: 'Token gereklidir' };
     }
 
-    const current = await db.selectFrom('bot_config').select('id').executeTakeFirst();
+    const current = await db.selectFrom('bot_config')
+      .select('id')
+      .where('workspace_id', '=', wsId || 0)
+      .executeTakeFirst();
+
     if (!current) {
       reply.code(400);
       return { error: 'Yapılandırma bulunamadı' };
@@ -122,7 +134,6 @@ async function settingsRouters(fastify: FastifyInstance): Promise<void> {
       .where('id', '=', current.id)
       .execute();
 
-    // Restart bot with new token
     try {
       await restartBot(token);
       return { success: true };
@@ -135,7 +146,12 @@ async function settingsRouters(fastify: FastifyInstance): Promise<void> {
   // POST /api/settings/restart
   fastify.post('/restart', async (request: any, reply: any) => {
     const db = getDb();
-    const current = await db.selectFrom('bot_config').select('token').executeTakeFirst();
+    const wsId = request.workspace_id;
+    const current = await db.selectFrom('bot_config')
+      .select('token')
+      .where('workspace_id', '=', wsId || 0)
+      .executeTakeFirst();
+
     if (!current || !current.token) {
       reply.code(400);
       return { error: 'Aktif bir bot tokenı yok' };
@@ -154,7 +170,12 @@ async function settingsRouters(fastify: FastifyInstance): Promise<void> {
   fastify.post('/profile', async (request: any, reply: any) => {
     const { name, description } = request.body || {};
     const db = getDb();
-    const current = await db.selectFrom('bot_config').select('token').executeTakeFirst();
+    const wsId = request.workspace_id;
+    const current = await db.selectFrom('bot_config')
+      .select('token')
+      .where('workspace_id', '=', wsId || 0)
+      .executeTakeFirst();
+
     if (!current || !current.token) {
       reply.code(400);
       return { error: 'Aktif bir bot tokenı yok' };
@@ -181,10 +202,11 @@ async function settingsRouters(fastify: FastifyInstance): Promise<void> {
 
     try {
       const db = getDb();
-      // Get all active chats
+      const wsId = request.workspace_id;
       const activeChats = await db.selectFrom('chats')
         .select(['chat_id', 'title'])
         .where('is_enabled', '=', 1)
+        .where('workspace_id', '=', wsId || 0)
         .execute();
 
       const botServiceMod = await import('../../services/bot.service.js');
@@ -219,14 +241,18 @@ async function settingsRouters(fastify: FastifyInstance): Promise<void> {
   // GET /api/settings/bot-info
   fastify.get('/bot-info', async (request: any, reply: any) => {
     const db = getDb();
-    const current = await db.selectFrom('bot_config').select('token').executeTakeFirst();
+    const wsId = request.workspace_id;
+    const current = await db.selectFrom('bot_config')
+      .select('token')
+      .where('workspace_id', '=', wsId || 0)
+      .executeTakeFirst();
+
     if (!current || !current.token) {
       return { connected: false, lastError: 'Token tanımlanmamış' };
     }
     const status = getStatus(current.token);
     return status;
   });
-
 }
 
 export default settingsRouters;

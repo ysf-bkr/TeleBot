@@ -61,7 +61,8 @@ async function startServer() {
         { path: request.url },
         (request as any).user?.id,
         (request as any).user?.username,
-        request.ip
+        request.ip,
+        (request as any).workspace_id
       );
     }
   });

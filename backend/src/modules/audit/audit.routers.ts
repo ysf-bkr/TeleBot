@@ -7,6 +7,7 @@ async function auditRouters(fastify: FastifyInstance): Promise<void> {
     try {
       const db = getDb();
       const query: any = request.query || {};
+      const wsId = request.workspace_id;
 
       const page = Math.max(1, Number(query.page) || 1);
       const limit = Math.min(100, Math.max(1, Number(query.limit) || 30));
@@ -17,8 +18,14 @@ async function auditRouters(fastify: FastifyInstance): Promise<void> {
       const sortOrder = query.sortOrder === 'asc' ? 'asc' : 'desc';
 
       // Build base query
-      let baseQuery = db.selectFrom('audit_logs');
-      let countQuery = db.selectFrom('audit_logs');
+      let baseQuery = db.selectFrom('audit_logs') as any;
+      let countQuery = db.selectFrom('audit_logs') as any;
+
+      // Workspace filter
+      if (wsId) {
+        baseQuery = baseQuery.where('workspace_id', '=', wsId);
+        countQuery = countQuery.where('workspace_id', '=', wsId);
+      }
 
       // Search filter
       if (search) {
@@ -73,14 +80,14 @@ async function auditRouters(fastify: FastifyInstance): Promise<void> {
   });
 
   // GET /api/audit/actions - Get distinct action types for filter
-  fastify.get('/actions', async (_request: any, reply: any) => {
+  fastify.get('/actions', async (request: any, reply: any) => {
     try {
       const db = getDb();
-      const result = await db.selectFrom('audit_logs')
-        .select('action')
-        .distinct()
-        .orderBy('action', 'asc')
-        .execute();
+      let query = db.selectFrom('audit_logs').select('action').distinct() as any;
+      if (request.workspace_id) {
+        query = query.where('workspace_id', '=', request.workspace_id);
+      }
+      const result = await query.orderBy('action', 'asc').execute();
       return result.map((r: any) => r.action);
     } catch (err: any) {
       reply.code(500);

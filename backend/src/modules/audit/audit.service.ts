@@ -6,12 +6,12 @@ class AuditService {
     details: any,
     userId: number | string | null | undefined,
     username: string | null | undefined,
-    ip: string | null | undefined
+    ip: string | null | undefined,
+    workspaceId?: number | null
   ): Promise<void> {
     const db = getDb();
     const now = new Date().toISOString();
-    
-    // Parse userId to number or null
+
     let uId: number | null = null;
     if (userId) {
       const parsed = Number(userId);
@@ -21,6 +21,7 @@ class AuditService {
     try {
       await db.insertInto('audit_logs')
         .values({
+          workspace_id: workspaceId || null,
           user_id: uId,
           username: username || null,
           action,
@@ -34,13 +35,13 @@ class AuditService {
     }
   }
 
-  async getLogs(limit = 30): Promise<any[]> {
+  async getLogs(limit = 30, workspaceId?: number): Promise<any[]> {
     const db = getDb();
-    return db.selectFrom('audit_logs')
-      .selectAll()
-      .orderBy('timestamp', 'desc')
-      .limit(limit)
-      .execute();
+    let query = db.selectFrom('audit_logs').selectAll().orderBy('timestamp', 'desc').limit(limit) as any;
+    if (workspaceId) {
+      query = query.where('workspace_id', '=', workspaceId);
+    }
+    return query.execute();
   }
 }
 

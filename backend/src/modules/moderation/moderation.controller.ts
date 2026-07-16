@@ -48,17 +48,14 @@ async function getLogs(request: FastifyRequest<{ Params: { chatId: string } }>, 
   return moderationService.getLogs(request.params.chatId, Number(limit) || 30);
 }
 
-// === YENİ: CAPTCHA Yönetimi ===
+// === CAPTCHA ===
 async function getCaptchaSessions(request: FastifyRequest, reply: FastifyReply) {
   try {
     const { chatId } = request.params as { chatId: string };
     const db = getDb();
-    const sessions = await (db as any).selectFrom('captcha_sessions')
-      .selectAll()
-      .where('chat_id', '=', chatId)
-      .orderBy('expires_at', 'desc')
-      .limit(50)
-      .execute();
+    let query = (db as any).selectFrom('captcha_sessions').selectAll().where('chat_id', '=', chatId).orderBy('expires_at', 'desc').limit(50);
+    if (request.workspace_id) query = query.where('workspace_id', '=', request.workspace_id);
+    const sessions = await query.execute();
     return sessions;
   } catch (err: any) {
     reply.code(500);
@@ -70,10 +67,7 @@ async function verifyCaptchaManually(request: FastifyRequest, reply: FastifyRepl
   try {
     const { id } = request.params as { id: string };
     const db = getDb();
-    await (db as any).updateTable('captcha_sessions')
-      .set({ verified: 1 })
-      .where('id', '=', Number(id))
-      .execute();
+    await (db as any).updateTable('captcha_sessions').set({ verified: 1 }).where('id', '=', Number(id)).execute();
     return { success: true };
   } catch (err: any) {
     reply.code(500);
@@ -81,14 +75,89 @@ async function verifyCaptchaManually(request: FastifyRequest, reply: FastifyRepl
   }
 }
 
-// === YENİ: Global Blacklist ===
+// === RBAC - Kullanıcı Rolleri (workspace bazlı) ===
+async function getUsers(request: FastifyRequest, reply: FastifyReply) {
+  try {
+    const db = getDb();
+    let query = (db as any).selectFrom('panel_users').selectAll();
+    if (request.workspace_id) {
+      query = query.where('workspace_id', '=', request.workspace_id);
+    }
+    const users = await query.execute();
+    return users;
+  } catch (err: any) {
+    reply.code(500);
+    return { error: err.message };
+  }
+}
+
+async function updateUserRole(request: FastifyRequest, reply: FastifyReply) {
+  try {
+    const { id } = request.params as { id: string };
+    const { role } = request.body as { role: string };
+    const db = getDb();
+    let query = (db as any).updateTable('panel_users').set({ role: role || 'user' }).where('id', '=', Number(id));
+    if (request.workspace_id) {
+      query = query.where('workspace_id', '=', request.workspace_id);
+    }
+    await query.execute();
+    return { success: true };
+  } catch (err: any) {
+    reply.code(500);
+    return { error: err.message };
+  }
+}
+
+async function createUser(request: FastifyRequest, reply: FastifyReply) {
+  try {
+    const { username, password, role } = request.body as { username: string; password: string; role?: string };
+    if (!username || !password) {
+      reply.code(400);
+      return { error: 'Kullanıcı adı ve şifre zorunludur' };
+    }
+    const bcrypt = await import('bcryptjs');
+    const passwordHash = bcrypt.hashSync(password, 10);
+    const db = getDb();
+    const existing = await (db as any).selectFrom('panel_users').selectAll().where('username', '=', username.trim().toLowerCase()).executeTakeFirst();
+    if (existing) {
+      reply.code(409);
+      return { error: 'Bu kullanıcı adı zaten kayıtlı' };
+    }
+    await (db as any).insertInto('panel_users').values({
+      workspace_id: request.workspace_id || null,
+      username: username.trim().toLowerCase(),
+      password_hash: passwordHash,
+      role: role || 'user',
+      created_at: new Date().toISOString(),
+    }).execute();
+    return { success: true };
+  } catch (err: any) {
+    reply.code(500);
+    return { error: err.message };
+  }
+}
+
+async function deleteUser(request: FastifyRequest, reply: FastifyReply) {
+  try {
+    const { id } = request.params as { id: string };
+    const db = getDb();
+    let query = (db as any).deleteFrom('panel_users').where('id', '=', Number(id));
+    if (request.workspace_id) {
+      query = query.where('workspace_id', '=', request.workspace_id);
+    }
+    await query.execute();
+    return { success: true };
+  } catch (err: any) {
+    reply.code(500);
+    return { error: err.message };
+  }
+}
+
+// === Global Blacklist ===
 async function getGlobalBlacklist(_request: FastifyRequest, reply: FastifyReply) {
   try {
     const db = getDb();
-    const list = await (db as any).selectFrom('global_blacklist')
-      .selectAll()
-      .orderBy('added_at', 'desc')
-      .execute();
+    const list = await (db as any).selectFrom('global_blacklist').selectAll().orderBy('added_at', 'desc').execute();
     return list;
   } catch (err: any) {
     reply.code(500);
@@ -101,9 +170,7 @@ async function addGlobalBlacklist(request: FastifyRequest, reply: FastifyReply) 
     const { userId, reason } = request.body as { userId: string; reason?: string };
     if (!userId) { reply.code(400); return { error: 'Kullanıcı ID zorunludur' }; }
     const db = getDb();
-    await (db as any).insertInto('global_blacklist')
-      .values({ user_id: String(userId), reason: reason || 'Panelden eklendi', added_at: new Date().toISOString() })
-      .execute();
+    await (db as any).insertInto('global_blacklist').values({ user_id: String(userId), reason: reason || 'Panelden eklendi', added_at: new Date().toISOString() }).execute();
     return { success: true };
   } catch (err: any) {
     reply.code(500);
@@ -123,33 +190,14 @@ async function removeGlobalBlacklist(request: FastifyRequest, reply: FastifyRepl
   }
 }
 
-// === YENİ: Kullanıcı Profil Kartı ===
+// === Kullanıcı Profil Kartı ===
 async function getUserProfile(request: FastifyRequest, reply: FastifyReply) {
   try {
     const { userId } = request.params as { userId: string };
     const db = getDb();
-
-    // Kullanıcının tüm gruplardaki aktiviteleri
-    const logs = await (db as any).selectFrom('logs')
-      .selectAll()
-      .where('user_id', '=', String(userId))
-      .orderBy('timestamp', 'desc')
-      .limit(50)
-      .execute();
-
-    // Moderasyon geçmişi
-    const modLogs = await (db as any).selectFrom('moderation_logs')
-      .selectAll()
-      .where('user_id', '=', String(userId))
-      .orderBy('timestamp', 'desc')
-      .limit(20)
-      .execute();
-
-    // Global blacklist durumu
-    const blacklisted = await (db as any).selectFrom('global_blacklist')
-      .selectAll()
-      .where('user_id', '=', String(userId))
-      .executeTakeFirst();
+    const logs = await (db as any).selectFrom('logs').selectAll().where('user_id', '=', String(userId)).orderBy('timestamp', 'desc').limit(50).execute();
+    const modLogs = await (db as any).selectFrom('moderation_logs').selectAll().where('user_id', '=', String(userId)).orderBy('timestamp', 'desc').limit(20).execute();
+    const blacklisted = await (db as any).selectFrom('global_blacklist').selectAll().where('user_id', '=', String(userId)).executeTakeFirst();
 
     return {
       userId,
@@ -167,101 +215,19 @@ async function getUserProfile(request: FastifyRequest, reply: FastifyReply) {
   }
 }
 
-// === YENİ: Webhook Test ===
+// === Webhook Test ===
 async function testWebhook(request: FastifyRequest, reply: FastifyReply) {
   try {
     const { url } = request.body as { url: string };
     if (!url) { reply.code(400); return { error: 'URL zorunludur' }; }
-
     const start = Date.now();
     const response = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ test: true, timestamp: new Date().toISOString() }) });
     const duration = Date.now() - start;
     const text = await response.text();
-
-    return {
-      success: response.ok,
-      statusCode: response.status,
-      duration: `${duration}ms`,
-      response: text.substring(0, 200),
-    };
+    return { success: response.ok, statusCode: response.status, duration: `${duration}ms`, response: text.substring(0, 200) };
   } catch (err: any) {
     reply.code(500);
     return { error: err.message, success: false };
-  }
-}
-
-// === YENİ: RBAC - Kullanıcı Rolleri ===
-async function getUsers(_request: FastifyRequest, reply: FastifyReply) {
-  try {
-    const db = getDb();
-    const users = await (db as any).selectFrom('panel_users').selectAll().execute();
-    return users;
-  } catch (err: any) {
-    reply.code(500);
-    return { error: err.message };
-  }
-}
-
-async function updateUserRole(request: FastifyRequest, reply: FastifyReply) {
-  try {
-    const { id } = request.params as { id: string };
-    const { role } = request.body as { role: string };
-    const db = getDb();
-    await (db as any).updateTable('panel_users')
-      .set({ role: role || 'user' } as any)
-      .where('id', '=', Number(id))
-      .execute();
-    return { success: true };
-  } catch (err: any) {
-    reply.code(500);
-    return { error: err.message };
-  }
-}
-
-async function createUser(request: FastifyRequest, reply: FastifyReply) {
-  try {
-    const { username, password, role } = request.body as { username: string; password: string; role?: string };
-    if (!username || !password) {
-      reply.code(400);
-      return { error: 'Kullanıcı adı ve şifre zorunludur' };
-    }
-    const bcrypt = await import('bcryptjs');
-    const passwordHash = bcrypt.hashSync(password, 10);
-    const db = getDb();
-    const existing = await (db as any).selectFrom('panel_users')
-      .selectAll()
-      .where('username', '=', username.trim().toLowerCase())
-      .executeTakeFirst();
-    if (existing) {
-      reply.code(409);
-      return { error: 'Bu kullanıcı adı zaten kayıtlı' };
-    }
-    await (db as any).insertInto('panel_users')
-      .values({
-        username: username.trim().toLowerCase(),
-        password_hash: passwordHash,
-        role: role || 'user',
-        created_at: new Date().toISOString(),
-      })
-      .execute();
-    return { success: true };
-  } catch (err: any) {
-    reply.code(500);
-    return { error: err.message };
-  }
-}
-
-async function deleteUser(request: FastifyRequest, reply: FastifyReply) {
-  try {
-    const { id } = request.params as { id: string };
-    const db = getDb();
-    await (db as any).deleteFrom('panel_users')
-      .where('id', '=', Number(id))
-      .execute();
-    return { success: true };
-  } catch (err: any) {
-    reply.code(500);
-    return { error: err.message };
   }
 }
 
